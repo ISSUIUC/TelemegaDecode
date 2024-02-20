@@ -43,7 +43,8 @@ set_target_properties(hackrf-static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
 # Dependencies
 target_link_libraries(hackrf ${LIBUSB_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-   
+target_link_libraries(hackrf-static ${LIBUSB_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 # For cygwin just force UNIX OFF and WIN32 ON
 if( ${CYGWIN} )
   SET(UNIX OFF)

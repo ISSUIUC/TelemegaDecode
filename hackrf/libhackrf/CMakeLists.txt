@@ -46,7 +46,6 @@ else()
 	endif(${BIGENDIAN})
 endif()
 find_package(LIBUSB REQUIRED)
-#find_package(Threads REQUIRED)
 
 include_directories(${LIBUSB_INCLUDE_DIR} ${THREADS_PTHREADS_INCLUDE_DIR})
 

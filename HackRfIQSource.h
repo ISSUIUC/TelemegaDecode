@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IQSource.h"
-#include "hackrf_transfer/libhackrf/src/hackrf.h"
+#include "hackrf//libhackrf/src/hackrf.h"
 #include <cstdio>
 #include <list>
 #include <mutex>
