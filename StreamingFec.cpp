@@ -5,7 +5,7 @@
 
 constexpr char SYNC_PATTERN[] = "1010101010101010101101001110010001";
 static_assert(sizeof(SYNC_PATTERN) == SYNC_PATTERN_LEN + 1, "Bad Sync Size");
-
+static_assert(MESSAGE_LEN / 16 - 2 == 34);
 StreamingFecDecoder::StreamingFecDecoder(std::function<void(Packet)> out): out(std::move(out)){
 
 }
@@ -29,8 +29,8 @@ void StreamingFecDecoder::next(bool sample){
 }
 
 void StreamingFecDecoder::process_message(){
-    uint8_t decoded[MESSAGE_LEN / 16 - 2]{};
-    ao_fec_decode(message_buffer, MESSAGE_LEN, decoded, sizeof(decoded), nullptr);
+    std::array<uint8_t, 34> decoded{};
+    ao_fec_decode(message_buffer, MESSAGE_LEN, decoded.data(), decoded.size(), nullptr);
     bool crc_match = decoded[sizeof(decoded)-1] == AO_FEC_DECODE_CRC_OK;
-    out(Packet{crc_match, std::vector<uint8_t>(decoded, decoded + sizeof(decoded))});
+    out(Packet{crc_match, decoded});
 }

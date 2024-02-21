@@ -3,6 +3,7 @@
 #include<cstdint>
 #include<vector>
 #include<functional>
+#include<array>
 
 constexpr size_t SYNC_PATTERN_LEN = 34;
 constexpr size_t MESSAGE_LEN = 72*8;
@@ -14,7 +15,7 @@ enum class FecDecoderState {
 
 struct Packet {
     bool crc_match;
-    std::vector<uint8_t> data;
+    std::array<uint8_t, 34> data;
 };
 
 class StreamingFecDecoder {
