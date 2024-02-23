@@ -17,7 +17,7 @@ public:
         std::function<void(Transition)> out
     );
 
-    void next(std::complex<float>* x, size_t len) {
+    void next(const std::complex<float>* x, size_t len) {
         for(size_t i = 0; i < len; i++){
             buffer[buffer_idx++] = x[i];
             if(buffer_idx == buffer_size){
@@ -27,7 +27,7 @@ public:
     }
 
     void flush_buffer() {
-        if(buffer_idx > off){
+        if(buffer_idx > off_buffer_size){
             process_buffer();
         }
     }
@@ -45,6 +45,7 @@ private:
     bool prev_bit{};
     std::complex<float_type> zi[3][2] = {};
     Shifter shifter;
-    size_t off{};
+    size_t off_buffer_size{};
+    double off{};
     std::function<void(Transition)> out;
 };

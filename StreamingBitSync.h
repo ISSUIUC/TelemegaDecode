@@ -9,23 +9,24 @@ public:
 
     void next(Transition sample){
         bool old_state = state;
+        double idx = (double)sample.idx;
         state = sample.new_state;
 
         if(alignment == 0){
-            alignment = sample.idx;
+            alignment = idx;
             return;
         }
 
-        if(alignment > sample.idx){
+        if(alignment > idx){
             return;
         }
 
-        while(sample.idx > alignment) {
+        while(idx > alignment) {
             alignment += baud_width;
             out(old_state);
 
-            if(alignment - baud_width / 2 < sample.idx && sample.idx < alignment + baud_width / 2){
-                alignment = alignment * 0.8 + sample.idx * 0.2;
+            if(alignment - baud_width / 2 < idx && idx < alignment + baud_width / 2){
+                alignment = alignment * 0.8 + idx * 0.2;
                 break;
             }
         }

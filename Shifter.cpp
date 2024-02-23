@@ -6,6 +6,7 @@
 #include<vector>
 #include<iostream>
 #include<limits>
+#include<iomanip>
 
 constexpr float PI = 3.141592653589793238462643383279502884;
 void Shifter::shift(std::complex<float> *x, size_t len, uint64_t start) {
@@ -44,7 +45,7 @@ Shifter::Shifter(double freq, double hz): freq(freq), hz(hz) {
         }
     }
 
-    if(best_freq_diff != 0.0){
+    if(std::abs(best_freq_diff) > 0.001){
         std::cerr << "Shift frequency change (" << freq << " -> " << freq + best_freq_diff << ")\n";
     }
 

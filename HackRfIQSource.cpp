@@ -39,17 +39,18 @@ std::pair<int,int> gain_index(int idx){
 HackRfIQSource::HackRfIQSource(uint64_t center) {
     CHECK(hackrf_init());
     device = nullptr;
+    new_gain_setting = current_gain_setting = 12;
+    auto [lna, vga] = gain_index(current_gain_setting);
     CHECK(hackrf_open_by_serial(nullptr, &device));
     CHECK(hackrf_set_sample_rate(device, SAMPLE_RATE));
     CHECK(hackrf_set_hw_sync_mode(device, 0));
     CHECK(hackrf_set_freq(device, center));
     CHECK(hackrf_set_amp_enable(device, 1));
-    CHECK(hackrf_set_vga_gain(device, 0));
-    CHECK(hackrf_set_lna_gain(device, 0));
+    CHECK(hackrf_set_vga_gain(device, vga));
+    CHECK(hackrf_set_lna_gain(device, lna));
     CHECK(hackrf_start_rx(device, rx_callback, this));
     amp_adjust_time = SAMPLE_RATE;
     max_iq_reading = 0;
-    new_gain_setting = current_gain_setting = 0;
     std::cerr << "RX start\n";
 }
 
@@ -59,13 +60,9 @@ size_t HackRfIQSource::read(IQ *buff, size_t len) {
         {
             if(new_gain_setting != current_gain_setting){
                 auto [lna,vga] = gain_index(new_gain_setting);
-                std::cerr << "A";
                 CHECK(hackrf_stop_rx(device));
-                std::cerr << "B";
                 CHECK(hackrf_set_lna_gain(device, lna));
-                std::cerr << "C";
                 CHECK(hackrf_set_vga_gain(device, vga));
-                std::cerr << "D";
                 CHECK(hackrf_start_rx(device, rx_callback, this));
                 current_gain_setting = new_gain_setting;
                 std::cerr << "Gain set: [" << lna << ',' << vga << "]\n";

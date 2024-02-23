@@ -66,12 +66,33 @@ static void sosfilt_fast(const float sos[3][6], cf* x, size_t len, cf zi[3][2]) 
     }
 }
 
-static void polar_discriminate(cf* x, size_t len, const cf* prev, size_t off) {
-    for(size_t i = len - 1; i >= off; i--){
-        x[i] = x[i-off] * std::conj(x[i]);
+static cf linear_sample(const cf* x, const cf* prev, size_t prev_len, double u){
+    if(u >= 0){
+        size_t i_u = (size_t)u;
+        float fract = u - i_u;
+
+        cf left = x[i_u];
+        cf right = x[i_u+1];
+        return left * (1 - fract) + right * fract;
+    } else if(u >= -1) {
+        float fract = u + 1;
+
+        cf left = prev[prev_len-1];
+        cf right = x[0];
+        return left * (1 - fract) + right * fract;
+    } else {
+        size_t i_u = (size_t)(-u);
+        float fract = -(i_u + u);
+        cf left = prev[prev_len - i_u - 1];
+        cf right = prev[prev_len - i_u];
+
+        return left * fract + right * (1-fract);
     }
-    for(size_t i = 0; i < off; i++){
-        x[i] = prev[i] * std::conj(x[i]);
+}
+
+static void polar_discriminate(cf* x, size_t len, const cf* prev, size_t prev_len, double off) {
+    for(ssize_t i = len - 1; i >= 0; i--){
+        x[i] = linear_sample(x, prev, prev_len, i - off) * std::conj(x[i]);
     }
 }
 
@@ -111,10 +132,11 @@ StreamingGFSKDecoder::StreamingGFSKDecoder(
         double center,
         std::function<void(Transition)> out
     ): shifter(-center, sample_rate), out(std::move(out)) {
-        off = (size_t)std::abs(sample_rate / center / 4);
+        off = std::abs(sample_rate / center / 4);
+        off_buffer_size = 1 + (size_t)std::ceil(std::abs(off));
         buffer_size = 1024*32;
-        prev_samps.resize(off);
-        staging.resize(off);
+        prev_samps.resize(off_buffer_size);
+        staging.resize(off_buffer_size);
         buffer.resize(buffer_size);
         bits = std::make_unique<bool[]>(buffer_size);
         prev_bit = false;
@@ -123,14 +145,14 @@ StreamingGFSKDecoder::StreamingGFSKDecoder(
     }
 
 void StreamingGFSKDecoder::process_buffer() {
-    if(buffer_idx < off){
+    if(buffer_idx < off_buffer_size){
         std::cerr << "Error, buffer too small";
         return;
     }
     shifter.shift(buffer.data(), buffer_idx, total_idx);
     sosfilt_fast(LOW_PASS_SOS_33K, buffer.data(), buffer_idx, zi);
-    std::copy(buffer.begin() + buffer_idx - off, buffer.begin() + buffer_idx, staging.begin());
-    polar_discriminate(buffer.data(), buffer_idx, prev_samps.data(), off);
+    std::copy(buffer.begin() + buffer_idx - off_buffer_size, buffer.begin() + buffer_idx, staging.begin());
+    polar_discriminate(buffer.data(), buffer_idx, prev_samps.data(), prev_samps.size(), off);
     std::swap(prev_samps, staging);
     bool_map(buffer.data(), buffer_idx, bits.get(), [](cf x){return x.imag() < 0.0;});
     transitions(bits.get(), buffer_idx, total_idx, prev_bit, out);

@@ -15,9 +15,16 @@ endif()
 add_executable(gfsk
     gfsk.cpp ao.cpp ao.h StreamingBitSync.cpp StreamingBitSync.h
     StreamingFec.cpp StreamingFec.h StreamingGFSK.cpp StreamingGFSK.h
-    Transition.h IQSource.h FileIQSource.cpp FileIQSource.h HackRfIQSource.cpp HackRfIQSource.h
-    Shifter.cpp Shifter.h)
+    Transition.h IQSource.h FileIQSource.cpp FileIQSource.h 
+    HackRfIQSource.cpp HackRfIQSource.h
+    Shifter.cpp Shifter.h StreamSplitter.cpp StreamSplitter.h)
 
-target_link_libraries(gfsk hackrf-static)
-target_link_libraries(gfsk ${LIBUSB_LIBRARIES})
+add_executable(test test.cpp)
+
+if(${MSVC})
+
+else()
+    target_link_libraries(gfsk hackrf-static ${LIBUSB_LIBRARIES})
+endif()
+
 
