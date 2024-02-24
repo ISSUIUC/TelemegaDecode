@@ -10,13 +10,20 @@ const server = express();
 let packet_buffer: {}[] = []
 
 server.use(express.static(path.join(__dirname, 'public')));
+
 server.get("/", (req,res)=>{
     res.render("index.html");
 });
+
+
 server.get("/getdata", (req,res)=>{
     if(packet_buffer.length > 0){
-        res.json(packet_buffer[0])
-        packet_buffer.splice(0,1);
+        // send all packets until theres none left
+        res.json(packet_buffer)
+        // empty the buffer
+        while(packet_buffer.length > 0) {
+            packet_buffer.splice(0,1);
+        }
     } else {
         res.json({})
     }
@@ -34,7 +41,7 @@ function ingest_message(msg: string) {
             break
         case "packet":
             const packet = parse_packet(json);
-            packet_buffer.push(packet);
+            packet_buffer.push(packet); // pushing packet to buffer
             break;
         case "closed":
             break;
