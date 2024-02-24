@@ -21,11 +21,9 @@ server.get("/getdata", (req,res)=>{
         // send all packets until theres none left
         res.json(packet_buffer)
         // empty the buffer
-        while(packet_buffer.length > 0) {
-            packet_buffer.splice(0,1);
-        }
+        packet_buffer = [];
     } else {
-        res.json({})
+        res.json([])
     }
 })
 
@@ -36,6 +34,7 @@ let stdin_buff = "";
 
 function ingest_message(msg: string) {
     const json: GFSKMessage  = JSON.parse(msg);
+    console.log(json.type);
     switch(json.type){
         case "center":
             break
