@@ -151,6 +151,8 @@ void StreamingGFSKDecoder::process_buffer() {
     }
     shifter.shift(buffer.data(), buffer_idx, total_idx);
     sosfilt_fast(LOW_PASS_SOS_33K, buffer.data(), buffer_idx, zi);
+
+
     std::copy(buffer.begin() + buffer_idx - off_buffer_size, buffer.begin() + buffer_idx, staging.begin());
     polar_discriminate(buffer.data(), buffer_idx, prev_samps.data(), prev_samps.size(), off);
     std::swap(prev_samps, staging);
