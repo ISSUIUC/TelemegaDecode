@@ -22,7 +22,7 @@ server.get("/getdata", (req,res)=>{
     }
 })
 
-const gfsk = spawn("../GFSK/cmake-build-release/gfsk.exe", ["434650000"])
+const gfsk = spawn("../cmake-build-release/gfsk.exe", ["434650000"])
 const decode = new TextDecoder();
 
 let stdin_buff = "";

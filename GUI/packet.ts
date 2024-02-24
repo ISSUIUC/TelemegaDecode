@@ -5,6 +5,75 @@ export type GFSKPacket = {
     id: number,
 }
 
+export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatellitePacket;
+export type SensorPacket = {
+    serial : number;
+    tick : number;
+    type : 1;
+    state : number;
+    accel : number;
+    pres : number;
+    temp : number;
+    v_batt : number;
+    sense_d : number;
+    sense_m : number;
+    acceleration : number;
+    speed : number;
+    height : number;
+    ground_press : number;
+    ground_accel : number;
+    accel_plus_g : number;
+    accel_minus_g : number;
+}
+
+export type ConfigPacket = {
+    serial : number;
+    tick : number;
+    type : 4,
+    flight : number;
+    config_major : number;
+    config_minor : number;
+    apogee_delay : number;
+    main_deploy : number;
+    flight_log_max : number;
+    callsign : string;
+    version : string;
+}
+
+export type GPSPacket = {
+    serial : number;
+    tick : number;
+    type : 5;
+    nsats : number;
+    valid : boolean;
+    running: boolean;
+    date_valid: boolean;
+    course_valid: boolean;
+    altitude : number;
+    latitude : number;
+    longitude : number;
+    year : number;
+    month : number;
+    day : number;
+    hour : number;
+    minute : number;
+    second : number;
+    pdop : number;
+    hdop : number;
+    vdop : number;
+    mode : number;
+    ground_speed : number;
+    climb_rate : number;
+    course : number;
+}
+
+export type SatellitePacket = {
+    serial : number;
+    tick : number;
+    type : 6;
+    channels : number;
+    sats : number[];
+}
 
 export type GFSKMessage = GFSKPacket 
 | {
@@ -25,7 +94,7 @@ export type GFSKMessage = GFSKPacket
 
 const decoder = new TextDecoder();
 
-export function parse_packet(packet: GFSKPacket){
+export function parse_packet(packet: GFSKPacket) : DecodedPacket {
     const u8 = new Uint8Array(packet.data).slice(0,32);
     const u16 = new Uint16Array(u8.buffer);
     const i16 = new Int16Array(u8.buffer);
@@ -35,7 +104,7 @@ export function parse_packet(packet: GFSKPacket){
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : u8[4],
+            "type" : 1,
             "state" : u8[5],
             "accel" : i16[3],
             "pres" : i16[4],
@@ -55,7 +124,7 @@ export function parse_packet(packet: GFSKPacket){
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : u8[4],
+            "type" : 4,
             "flight" : u16[3],
             "config_major" : u8[8],
             "config_minor" : u8[9],
@@ -69,7 +138,7 @@ export function parse_packet(packet: GFSKPacket){
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : u8[4],
+            "type" : 5,
             "nsats" : u8[5] & 0x7,
             "valid" : (u8[5] & 0x8) != 0,
             "running": (u8[5] & 0x10) != 0,
@@ -96,9 +165,9 @@ export function parse_packet(packet: GFSKPacket){
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : u8[4],
+            "type" : 6,
             "channels" : u8[5],
-            "sats" : u16.subarray(3,15)
+            "sats" : Array.from(u8.subarray(6,30))
         }
     }
 }
