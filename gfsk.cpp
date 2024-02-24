@@ -1,15 +1,16 @@
+#include<iostream>
+#include<string>
+#include<chrono>
+#include<thread>
+#include<csignal>
+
 #include"StreamingBitSync.h"
 #include"StreamingGFSK.h"
 #include"StreamingFec.h"
 #include"FileIQSource.h"
 #include"HackRfIQSource.h"
 #include"StreamSplitter.h"
-
-#include<iostream>
-#include<string>
-#include<chrono>
-#include<thread>
-#include<csignal>
+#include"stdio_json.h"
 
 using cf = std::complex<float>;
 
@@ -85,11 +86,9 @@ void print_packet(const Packet& packet){
 
 class FullDecoder {
 public:
-    FullDecoder(double center, double hz, double baud) {
-        int packet_ct = 0;
-        fec = std::make_shared<StreamingFecDecoder>([=](Packet p) mutable {
-            std::cout << center << ' ' << packet_ct++ << ' ' << p.crc_match << '\n';
-            print_packet(p);
+    FullDecoder(double center, double hz, double baud, size_t id) {
+        fec = std::make_shared<StreamingFecDecoder>([=](Packet p){
+            output_packet(p, id);
         });
         bit = std::make_shared<StreamingBitSync>(hz/baud, [=](bool b){
             fec->next(b);
@@ -130,7 +129,7 @@ int main(int argc, const char** argv){
         char* end{};
         double freq = std::strtod(argv[freq_id], &end);
         if(*end != '\0'){
-            std::cerr << "Invalid Frequency " << argv[freq_id] << '\n';
+            output_error(std::string("Invalid Frequency ") + argv[freq_id], __FILE__, __LINE__);
             return 1;
         }
         freqs.push_back(freq);
@@ -138,10 +137,11 @@ int main(int argc, const char** argv){
 
     double center = std::round(find_center_frequency(freqs));
 
-    std::cerr << "Center Freq = " << (uint64_t)center << '\n';
+    output_center_freq(center);
     std::vector<std::unique_ptr<FullDecoder>> decoders;
-    for(double freq: freqs){
-        decoders.push_back(std::make_unique<FullDecoder>(freq - center, hz, baud));
+    for(size_t i = 0; i < freqs.size(); i++){
+        decoders.push_back(std::make_unique<FullDecoder>(freqs[i] - center, hz, baud, i));
+//        decoders.push_back(std::make_unique<FullDecoder>(-200000, hz, baud, i));
     }
 //    FileIQSource src("../tele200.dat");
     HackRfIQSource src((uint64_t)center);
@@ -152,7 +152,6 @@ int main(int argc, const char** argv){
 
     auto t1 = std::chrono::steady_clock::now();
 
-    uint64_t total_samps = 0;
     std::vector<std::thread> threads;
     for(size_t i = 0; i < decoders.size(); i++){
         threads.emplace_back([i,&splitter,&decoders](){
@@ -173,12 +172,10 @@ int main(int argc, const char** argv){
         bool not_closed = splitter.push(std::move(cf_buffer));
 
         if(!not_closed) break;
-
-        total_samps += ct;
     }
     splitter.close();
 
-    std::cerr << "Closed, Stopping Threads\n";
+    output_closed();
 
     for(auto& t : threads){
         t.join();

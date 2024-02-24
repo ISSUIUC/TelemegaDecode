@@ -218,8 +218,8 @@ ao_fec_prepare(const uint8_t *in, uint8_t len, uint8_t *extra)
 uint8_t
 ao_fec_decode(const uint8_t *in, uint16_t len, uint8_t *out, uint8_t out_len, uint16_t (*callback)(void))
 {
-	static uint32_t	cost[2][NUM_STATE];		/* path cost */
-	static bits_t	bits[2][NUM_STATE];		/* save bits to quickly output them */
+	uint32_t	cost[2][NUM_STATE]{};		/* path cost */
+	bits_t	bits[2][NUM_STATE]{};		/* save bits to quickly output them */
 
 	uint16_t	i;				/* input byte index */
 	uint16_t	b;				/* encoded symbol index (bytes/2) */
