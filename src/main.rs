@@ -6,16 +6,14 @@ mod streaming_bit_sync;
 mod streaming_fec_decoder;
 mod ao;
 mod iq_source;
-mod types;
 
 use std::collections::VecDeque;
-use std::fs::File;
-use std::io::{Write};
 use std::path::PathBuf;
-use std::thread::JoinHandle;
+use std::sync::Arc;
 use std::time::Instant;
 use clap::Parser;
 use num_complex::Complex;
+use bus::Bus;
 use crate::iq_source::{FileIQSource, HackRFIQSource, IQSource};
 use crate::streaming_bit_sync::StreamingBitSync;
 use crate::streaming_fec_decoder::{Packet, StreamingFecDecoder};
@@ -43,10 +41,6 @@ impl Arguments {
 
 
 struct Decoder {
-    // file: File,
-
-    ct: usize,
-
     fec: StreamingFecDecoder,
     bit: StreamingBitSync,
     gfsk: StreamingGFSKDecoder,
@@ -57,9 +51,6 @@ struct Decoder {
 impl Decoder {
     fn new(center: f64, hz: f64, baud: f64) -> Decoder {
         Decoder {
-            // file: File::create("log.txt").unwrap(),
-
-            ct: 0,
             fec: StreamingFecDecoder::new(),
             bit: StreamingBitSync::new(hz/baud),
             gfsk: StreamingGFSKDecoder::new(hz, center),
@@ -68,38 +59,14 @@ impl Decoder {
     }
 
     fn feed(&mut self, value: &[Complex<f32>]) {
-        self.ct += value.len();
-        if self.ct >= 20_000_000 {
-            self.ct = 0;
-            println!("Got 20M");
-        }
-
         self.gfsk.feed(value, |trans| {
             self.bit.feed(trans, |bit| {
-                // self.file.write(&[bit as u8]).unwrap();
-                // write!(self.file, "{}", if bit { '1' } else { '0' }).unwrap();
                 self.fec.feed(bit, |packet| {
                     self.packets.push_back(packet);
                 });
             });
         });
     }
-}
-
-
-fn spawn_reading_thread<S: IQSource + Send + 'static>(mut src: S) -> (JoinHandle<()>, std::sync::mpsc::Receiver<Vec<Complex<f32>>>) {
-    let (tx, rx) = std::sync::mpsc::channel();
-    let recv_handle = std::thread::spawn(move || {
-        loop {
-            let buffer = src.read();
-            if buffer.is_empty() {
-                return;
-            }
-            tx.send(buffer).unwrap();
-        }
-    });
-
-    (recv_handle, rx)
 }
 
 
@@ -112,31 +79,41 @@ fn main() {
 
     let center = args.get_center();
 
-    let mut decoders: Vec<Decoder> = args.frequencies.iter().map(|freq| {
-        Decoder::new(freq - center, HZ, BAUD)
-    }).collect();
-
-    let (recv_handle, rx) = if let Some(file_name) = args.file {
-        spawn_reading_thread(FileIQSource::new(file_name))
+    let mut src: Box<dyn IQSource + Send> = if let Some(file_name) = args.file {
+        Box::new(FileIQSource::new(file_name))
     } else {
-        spawn_reading_thread(HackRFIQSource::new(args.frequencies[0]))
+        Box::new(HackRFIQSource::new(center))
     };
 
-    for buffer in rx {
-        decoders[0].feed(&buffer);
-        while let Some(packet) = decoders[0].packets.pop_front() {
-            println!("packet: {:?}", packet);
-        }
-        // for decoder in &mut decoders {
-        //     decoder.feed(&buffer);
-        //     while let Some(packet) = decoder.packets.pop_front() {
-        //         println!("packet: {:?}", packet);
-        //     }
-        // }
+    let mut bus: Bus<Arc<Vec<Complex<f32>>>> = Bus::new(10000);
+
+    let mut worker_handles = Vec::new();
+    for freq in args.frequencies {
+        let mut decoder = Decoder::new(freq - center, HZ, BAUD);
+        let mut bus_recv = bus.add_rx();
+        let handle = std::thread::spawn(move || {
+            while let Ok(packet) = bus_recv.recv() {
+                decoder.feed(&packet);
+                while let Some(packet) = decoder.packets.pop_front() {
+                    println!("{:?}", packet);
+                }
+            }
+        });
+        worker_handles.push(handle);
     }
 
-    let end = Instant::now();
-    println!("Took {:?} sec", (end - start));
+    std::thread::spawn(move || {
+        loop {
+            let buffer = src.read();
+            if buffer.is_empty() {
+                return;
+            }
+            bus.broadcast(Arc::new(buffer));
+        }
+    });
 
-    recv_handle.join().unwrap();
+    worker_handles.into_iter().for_each(|handle| handle.join().unwrap());
+
+    let end = Instant::now();
+    println!("Took {:?}", end - start);
 }

@@ -76,8 +76,8 @@ impl StreamingGFSKDecoder {
         }
 
         self.shifter.shift(&mut self.buffer, self.total_idx);
-        // sosfilt(&LOW_PASS_SOS_33K, &mut self.buffer, &mut self.zi);
-        sosfilt_fast(&LOW_PASS_SOS_33K, &mut self.buffer, &mut self.zi);
+        sosfilt(&LOW_PASS_SOS_33K, &mut self.buffer, &mut self.zi);
+        // sosfilt_fast(&LOW_PASS_SOS_33K, &mut self.buffer, &mut self.zi);
         self.staging.copy_from_slice(&self.buffer[self.buffer.len() - self.offset_buffer_size..]);
         polar_discriminate(&mut self.buffer, &self.previous_samples, self.offset as usize);
         std::mem::swap(&mut self.previous_samples, &mut self.staging);
@@ -121,86 +121,79 @@ fn sosfilt<const N: usize>(sos: &[[f32; 6]; N], x: &mut [Complex<f32>], zi: &mut
     }
 }
 
-fn sosfilt_fast(sos: &[[f32; 6]; 3], x: &mut [Complex<f32>], zi: &mut [[Complex<f32>; 2]; 3]) {
-    for i in 0..x.len() {
-        let x_c_0 = x[i];
+// fn sosfilt_fast(sos: &[[f32; 6]; 3], x: &mut [Complex<f32>], zi: &mut [[Complex<f32>; 2]; 3]) {
+//     for i in 0..x.len() {
+//         let x_c_0 = x[i];
+//
+//         let section1 = &sos[0];
+//         let section2 = &sos[1];
+//         let section3 = &sos[2];
+//
+//         let zi_0 = &zi[0];
+//         let zi_1 = &zi[1];
+//         let zi_2 = &zi[2];
+//
+//         let mut cp_zi_0 = [Complex::new(0.0, 0.0); 2];
+//         let mut cp_zi_1 = [Complex::new(0.0, 0.0); 2];
+//         let mut cp_zi_2 = [Complex::new(0.0, 0.0); 2];
+//
+//         let x_0 = section1[0] * x_c_0 + zi_0[0];
+//         let x_1 = section2[0] * x_0 + zi_1[0];
+//         let x_2 = section3[0] * x_1 + zi_2[0];
+//
+//         cp_zi_0[0] = section1[1] * x_c_0 - section1[4] * x_0 + zi_0[1];
+//         cp_zi_1[0] = section2[1] * x_0 - section2[4] * x_1 + zi_1[1];
+//         cp_zi_2[0] = section3[1] * x_1 - section3[4] * x_2 + zi_2[1];
+//
+//         cp_zi_0[1] = section1[2] * x_c_0 - section1[5] * x_0;
+//         cp_zi_1[1] = section2[2] * x_0 - section2[5] * x_1;
+//         cp_zi_2[1] = section3[2] * x_1 - section3[5] * x_2;
+//
+//         x[i] = x_2;
+//
+//         zi[0][0] = cp_zi_0[0];
+//         zi[1][0] = cp_zi_1[0];
+//         zi[2][0] = cp_zi_2[0];
+//
+//         zi[0][1] = cp_zi_0[1];
+//         zi[1][1] = cp_zi_1[1];
+//         zi[2][1] = cp_zi_2[1];
+//     }
+// }
 
-        let section1 = &sos[0];
-        let section2 = &sos[1];
-        let section3 = &sos[2];
-
-        let zi_0 = &zi[0];
-        let zi_1 = &zi[1];
-        let zi_2 = &zi[2];
-
-        let mut cp_zi_0 = [Complex::new(0.0, 0.0); 2];
-        let mut cp_zi_1 = [Complex::new(0.0, 0.0); 2];
-        let mut cp_zi_2 = [Complex::new(0.0, 0.0); 2];
-
-        let x_0 = section1[0] * x_c_0 + zi_0[0];
-        let x_1 = section2[0] * x_0 + zi_1[0];
-        let x_2 = section3[0] * x_1 + zi_2[0];
-
-        cp_zi_0[0] = section1[1] * x_c_0 - section1[4] * x_0 + zi_0[1];
-        cp_zi_1[0] = section2[1] * x_0 - section2[4] * x_1 + zi_1[1];
-        cp_zi_2[0] = section3[1] * x_1 - section3[4] * x_2 + zi_2[1];
-
-        cp_zi_0[1] = section1[2] * x_c_0 - section1[5] * x_0;
-        cp_zi_1[1] = section2[2] * x_0 - section2[5] * x_1;
-        cp_zi_2[1] = section3[2] * x_1 - section3[5] * x_2;
-
-        x[i] = x_2;
-
-        zi[0][0] = cp_zi_0[0];
-        zi[1][0] = cp_zi_1[0];
-        zi[2][0] = cp_zi_2[0];
-
-        zi[0][1] = cp_zi_0[1];
-        zi[1][1] = cp_zi_1[1];
-        zi[2][1] = cp_zi_2[1];
-    }
-}
-
-fn linear_sample(x: &[Complex<f32>], prev: &[Complex<f32>], u: f32) -> Complex<f32> {
-    if u >= 0.0 {
-        let i_u = u as usize;
-        let fract = u - i_u as f32;
-        let left = x[i_u];
-        let right = x[i_u + 1];
-        left * (1.0 - fract) + right * fract
-    } else if u >= -1.0 {
-        let fract = u + 1.0;
-        let left = prev[prev.len()-1];
-        let right = x[0];
-        left * (1.0 - fract) + right * fract
-    } else {
-        let i_u = -u as usize;
-        let fract = -(i_u as f32 + u);
-        let left = prev[prev.len() - i_u - 1];
-        let right = prev[prev.len() - i_u];
-
-        left * fract + right * (1.0 - fract)
-    }
-}
+// fn linear_sample(x: &[Complex<f32>], prev: &[Complex<f32>], u: f32) -> Complex<f32> {
+//     if u >= 0.0 {
+//         let i_u = u as usize;
+//         let fract = u - i_u as f32;
+//         let left = x[i_u];
+//         let right = x[i_u + 1];
+//         left * (1.0 - fract) + right * fract
+//     } else if u >= -1.0 {
+//         let fract = u + 1.0;
+//         let left = prev[prev.len()-1];
+//         let right = x[0];
+//         left * (1.0 - fract) + right * fract
+//     } else {
+//         let i_u = -u as usize;
+//         let fract = -(i_u as f32 + u);
+//         let left = prev[prev.len() - i_u - 1];
+//         let right = prev[prev.len() - i_u];
+//
+//         left * fract + right * (1.0 - fract)
+//     }
+// }
 
 fn polar_discriminate(x: &mut [Complex<f32>], prev: &[Complex<f32>], offset: usize) {
-    // for(size_t i = len - 1; i >= off; i--){
-    //     x[i] = x[i-off] * std::conj(x[i]);
-    // }
-    // for(size_t i = 0; i < off; i++){
-    //     x[i] = prev[i] * std::conj(x[i]);
-    // }
-
-    // for i in (offset..x.len()).rev() {
-    //     x[i] = x[i-offset] * x[i].conj();
-    // }
-    // for i in 0..offset {
-    //     x[i] = prev[i] * x[i].conj();
-    // }
-
-    let offset = offset as f32;
-
-    for i in (0..x.len()).rev() {
-        x[i] = linear_sample(x, prev, i as f32 - offset) * x[i].conj();
+    for i in (offset..x.len()).rev() {
+        x[i] = x[i-offset] * x[i].conj();
     }
+    for i in 0..offset {
+        x[i] = prev[i] * x[i].conj();
+    }
+
+    // let offset = offset as f32;
+    //
+    // for i in (0..x.len()).rev() {
+    //     x[i] = linear_sample(x, prev, i as f32 - offset) * x[i].conj();
+    // }
 }
