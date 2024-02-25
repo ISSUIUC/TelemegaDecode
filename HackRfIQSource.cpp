@@ -3,9 +3,11 @@
 //
 
 #include "HackRfIQSource.h"
-#include<iostream>
-#include<fstream>
+
+#include<thread>
 #include<cstring>
+
+#include"stdio_json.h"
 
 /*
  * sample rate = 20000000
@@ -19,9 +21,9 @@ constexpr size_t SAMPLE_RATE = 20000000;
 constexpr int MAX_GAIN_SETTING = 36;
 constexpr int MIN_GAIN_SETTING = 0;
 
-#define CHECK(x) do { int res = (x); if(res != HACKRF_SUCCESS) {  \
-std::cerr << "ERROR (" << hackrf_error_name((hackrf_error)res) << ") " << __FILE__ << ':' << __LINE__ << '\n';   \
-exit(1);                                                        \
+#define CHECK(x) do { int res = (x); if(res != HACKRF_SUCCESS) {            \
+output_error(hackrf_error_name((hackrf_error)res), __FILE__, __LINE__);     \
+exit(1);                                                                    \
 } } while(0)
 
 int rx_callback(hackrf_transfer* transfer) {
@@ -51,13 +53,12 @@ HackRfIQSource::HackRfIQSource(uint64_t center) {
     CHECK(hackrf_start_rx(device, rx_callback, this));
     amp_adjust_time = SAMPLE_RATE;
     max_iq_reading = 0;
-    std::cerr << "RX start\n";
 }
 
-#include<thread>
 size_t HackRfIQSource::read(IQ *buff, size_t len) {
     for(int tries = 0; tries < 30; tries++){
         {
+            std::lock_guard l(lock);
             if(new_gain_setting != current_gain_setting){
                 auto [lna,vga] = gain_index(new_gain_setting);
                 CHECK(hackrf_stop_rx(device));
@@ -65,9 +66,8 @@ size_t HackRfIQSource::read(IQ *buff, size_t len) {
                 CHECK(hackrf_set_vga_gain(device, vga));
                 CHECK(hackrf_start_rx(device, rx_callback, this));
                 current_gain_setting = new_gain_setting;
-                std::cerr << "Gain set: [" << lna << ',' << vga << "]\n";
+                output_gain_setting(lna, vga);
             }
-            std::lock_guard l(lock);
             if(!backlog.empty()){
                 auto& block = backlog.front();
                 if(block.size() > len){
@@ -115,7 +115,6 @@ int HackRfIQSource::next_transfer(hackrf_transfer *transfer) {
         if(max_iq_reading > 90){
             new_gain_setting = std::max(current_gain_setting - 1, MIN_GAIN_SETTING);
         }
-        std::cerr << (int)max_iq_reading << '\n';
         max_iq_reading = 0;
         amp_adjust_time = SAMPLE_RATE;
         if(new_gain_setting != current_gain_setting) {

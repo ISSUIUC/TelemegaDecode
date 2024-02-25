@@ -10,5 +10,6 @@ FileIQSource::FileIQSource(const char *path) {
 
 size_t FileIQSource::read(IQ *buff, size_t len) {
     file.read((char*)buff, len * sizeof(IQ));
-    return file.gcount() / sizeof(IQ);
+    size_t ct = file.gcount();
+    return ct / sizeof(IQ);
 }

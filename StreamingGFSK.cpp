@@ -115,11 +115,11 @@ static void transitions(const bool* x, size_t len, size_t start, bool prev, std:
     }
 }
 
-static constexpr float LOW_PASS_SOS_50K[3][6] = {
-    {2.91377410754218e-11,5.82754821508436e-11,2.91377410754218e-11,1.0,-0.9844141274160969,0.0,},
-    {1.0,2.0,1.0,1.0,-1.9746602956354231,0.9749039346327976,},
-    {1.0,1.0,0.0,1.0,-1.990093692505087,0.9903392357172509,},
-};
+//static constexpr float LOW_PASS_SOS_50K[3][6] = {
+//    {2.91377410754218e-11,5.82754821508436e-11,2.91377410754218e-11,1.0,-0.9844141274160969,0.0,},
+//    {1.0,2.0,1.0,1.0,-1.9746602956354231,0.9749039346327976,},
+//    {1.0,1.0,0.0,1.0,-1.990093692505087,0.9903392357172509,},
+//};
 
 static constexpr float LOW_PASS_SOS_33K[3][6] = {
     {3.869494405731452e-12,7.738988811462904e-12,3.869494405731452e-12,1.0,-0.989582475318754,0.0,},
@@ -132,7 +132,7 @@ StreamingGFSKDecoder::StreamingGFSKDecoder(
         double center,
         std::function<void(Transition)> out
     ): shifter(-center, sample_rate), out(std::move(out)) {
-        off = std::abs(sample_rate / center / 4);
+        off = 50;
         off_buffer_size = 1 + (size_t)std::ceil(std::abs(off));
         buffer_size = 1024*32;
         prev_samps.resize(off_buffer_size);
