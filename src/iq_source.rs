@@ -1,12 +1,14 @@
-use std::collections::VecDeque;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufReader, Read};
+use std::path::Path;
 use itertools::Itertools;
 use hackrfone::{HackRfOne, RxMode};
 use num_complex::Complex;
 
-trait IQSource : Iterator<Item=Complex<f64>> { }
-impl<I> IQSource for I where I: Iterator<Item=Complex<f64>> { }
+
+pub trait IQSource {
+    fn read(&mut self) -> Vec<Complex<f32>>;
+}
 
 
 const SAMPLE_RATE: f64 = 20_000_000.0;
@@ -14,14 +16,44 @@ const MAX_GAIN_SETTING: i16 = 36;
 const MIN_GAIN_SETTING: i16 = 0;
 
 
+pub struct FileIQSource {
+    file: BufReader<File>
+}
+
+
+impl FileIQSource {
+    pub fn new(file_name: impl AsRef<Path>) -> FileIQSource {
+        FileIQSource {
+            file: BufReader::new(File::open(file_name.as_ref()).unwrap())
+        }
+    }
+}
+
+const BUF_SIZE: usize = 1024 * 1024;
+
+impl IQSource for FileIQSource {
+    fn read(&mut self) -> Vec<Complex<f32>> {
+        let mut buf = [0; BUF_SIZE];
+        match self.file.read(&mut buf) {
+            Ok(ct) => {
+                let mut out = Vec::with_capacity(ct/2);
+                for i in (0..ct).step_by(2) {
+                    out.push(Complex::new(buf[i] as i8 as f32, buf[i+1] as i8 as f32))
+                }
+                out
+            }
+            Err(_) => vec![]
+        }
+    }
+}
+
 pub struct HackRFIQSource {
     current_gain: i16,
     max_iq_reading: i8,
     amp_adjust_time: i64,
-    backlog: VecDeque<Vec<Complex<f64>>>,
+    // backlog: VecDeque<Vec<Complex<f32>>>,
 
-    hack_rf: HackRfOne<RxMode>,
-    _not_send: *const u8
+    hack_rf: HackRfOne<RxMode>
 }
 
 extern "C" { fn hackrf_get_sample_rate(freq: f64, freq_hz: *mut u32, divider: *mut u32); }
@@ -59,17 +91,18 @@ impl HackRFIQSource {
             current_gain: 6,
             max_iq_reading: 0,
             amp_adjust_time: SAMPLE_RATE as i64,
-            backlog: VecDeque::with_capacity(1000),
-            hack_rf,
-            _not_send: std::ptr::null()
+            // backlog: VecDeque::with_capacity(1000),
+            hack_rf
         }
     }
+}
 
-    pub fn read(&mut self) -> Vec<Complex<f64>> {
+impl IQSource for HackRFIQSource {
+    fn read(&mut self) -> Vec<Complex<f32>> {
         let buffer = self.hack_rf.rx().unwrap();
         let mut out = Vec::with_capacity(buffer.len() / 2);
         for (i, q) in buffer.into_iter().tuples() {
-            out.push(Complex::new((i as i8) as f64, (q as i8) as f64));
+            out.push(Complex::new((i as i8) as f32, (q as i8) as f32));
         }
 
         self.amp_adjust_time -= out.len() as i64;

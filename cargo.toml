@@ -11,3 +11,4 @@ clap = { version = "4.5.1", features = ["derive"] }
 num-complex = "0.4"
 hackrfone = "0.2.3"
 itertools = "0.12"
+bus = "2.4.1"
