@@ -1,6 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js"
-import { DecodedPacket, SensorPacket, ConfigPacket, GPSPacket, SatellitePacket } from "../packet";
+import { DecodedPacket, SensorPacket, ConfigPacket, GPSPacket, SatellitePacket, parse_packet } from "../packet";
 
 
 @customElement('sensor-packet')
@@ -9,8 +9,25 @@ export class SensorPacketView extends LitElement {
     data: SensorPacket;
 
     render() {
+        if(this.data == null) return html`NODATA`;
         return html`
-            Sensor Packet ${this.data}
+            <table>
+                <tr>
+                Tick: ${this.data.tick} State: ${this.data.state}
+    </tr><tr>
+                Accel: ${this.data.accel} Pres: ${this.data.pres} Temp: ${this.data.temp} c
+    </tr><tr>
+                Battery Voltage ${this.data.v_batt}
+                </tr><tr>
+                Drogue Continuity ${this.data.sense_d} Main Continuity ${this.data.sense_m}
+                </tr><tr>
+                Acceleration: ${this.data.acceleration}m/s Speed ${this.data.speed}m/s Height ${this.data.height}m
+                </tr><tr>
+                Ground Pressure ${this.data.ground_press} Ground Accel ${this.data.ground_accel}
+                </tr><tr>
+                Accel Plus G ${this.data.accel_plus_g} Accel Minus G ${this.data.accel_minus_g}
+                </tr>
+                </table>
         `
     }
 }
