@@ -27,7 +27,7 @@ server.get("/getdata", (req,res)=>{
     }
 })
 
-const gfsk = spawn("../cmake-build-release/gfsk.exe", ["434650000"])
+//const gfsk = spawn("../cmake-build-release/gfsk.exe", ["434650000"])
 const decode = new TextDecoder();
 
 let stdin_buff = "";
@@ -51,25 +51,25 @@ function ingest_message(msg: string) {
     }
 }
 
-gfsk.stdout.on("data", msg=>{
-    const str = decode.decode(msg);
-    for(let i = 0; i < str.length; i++){
-        if(str[i] == '\n'){
-            ingest_message(stdin_buff);
-            stdin_buff = "";
-        } else {
-            stdin_buff += str[i];
-        }
-    }
-})
+// gfsk.stdout.on("data", msg=>{
+//     const str = decode.decode(msg);
+//     for(let i = 0; i < str.length; i++){
+//         if(str[i] == '\n'){
+//             ingest_message(stdin_buff);
+//             stdin_buff = "";
+//         } else {
+//             stdin_buff += str[i];
+//         }
+//     }
+// })
 
-gfsk.stderr.on("data", msg=>{
-    console.log("stderr", decode.decode(msg).trimEnd())
-})
+// gfsk.stderr.on("data", msg=>{
+//     console.log("stderr", decode.decode(msg).trimEnd())
+// })
 
-gfsk.on("exit", code=>{
-    console.log("Exit", code);
-})
+// gfsk.on("exit", code=>{
+//     console.log("Exit", code);
+// })
 
 server.listen(8084, ()=>{
     console.log("Begin");
