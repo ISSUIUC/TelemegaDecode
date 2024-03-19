@@ -5,7 +5,25 @@ export type GFSKPacket = {
     id: number,
 }
 
-export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatellitePacket;
+export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatellitePacket | KalmanVoltagePacket | UnknownPacket;
+
+export type KalmanVoltagePacket = {
+    serial: number;
+    tick: number;
+    type: number;
+    state: number;
+    v_batt: number;
+    v_pyro: number;
+    sense: number[];
+    ground_pres: number;
+    ground_accel: number;
+    accel_plus_g: number;
+    accel_minus_g: number;
+    acceleration: number;
+    speed: number;
+    height: number;
+}
+
 export type SensorPacket = {
     serial : number;
     tick : number;
@@ -73,6 +91,10 @@ export type SatellitePacket = {
     type : 6;
     channels : number;
     sats : number[];
+}
+
+export type UnknownPacket = {
+    type: number;
 }
 
 export type GFSKMessage = GFSKPacket 
@@ -168,6 +190,27 @@ export function parse_packet(packet: GFSKPacket) : DecodedPacket {
             "type" : 6,
             "channels" : u8[5],
             "sats" : Array.from(u8.subarray(6,30))
+        }
+    } else if(type == 9){
+        return {
+            "serial": u16[0],
+            "tick": u16[1] / 100,
+            "type": 9,
+            "state": u8[5],
+            "v_batt": i16[3],
+            "v_pyro": i16[4],
+            "sense": Array.from(u8.slice(10,16)),
+            "ground_pres": i32[4],
+            "ground_accel": i16[10],
+            "accel_plus_g": i16[11],
+            "accel_minus_g": i16[12],
+            "acceleration": i16[13]/16,
+            "speed": i16[14]/16,
+            "height": i16[15],
+        }
+    } else {
+        return {
+            "type" : type
         }
     }
 }

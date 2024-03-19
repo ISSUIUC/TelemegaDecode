@@ -1,4 +1,4 @@
-use crate::transition::Transition;
+use crate::gfsk::transition::Transition;
 
 pub struct StreamingBitSync {
     state: bool,

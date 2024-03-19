@@ -77,16 +77,16 @@ export class TeleMegaDataView extends LitElement {
     public serial: number;
 
     @property()
-    public sensor: SensorPacketView = new SensorPacketView();
+    public sensor: string = "";
 
     @property()
-    public config: ConfigPacketView = new ConfigPacketView();
+    public config: string = "";
 
     @property()
-    public gps: GpsPacketView = new GpsPacketView();
+    public gps: string = "";
 
     @property()
-    public sat: SatellitePacketView = new SatellitePacketView();
+    public sat: string = "";
 
     render() {
         return html`
@@ -122,19 +122,20 @@ setInterval(async ()=>{
         for(const elem of json){
             switch(elem.type){
                 case 1:
-                    view.sensor.data = elem;
+                case 9:
+                    view.sensor = JSON.stringify(elem);
                     view.sensor.requestUpdate();
                     break;
                 case 4:
-                    view.config.data = elem;
+                    view.config = JSON.stringify(elem);
                     view.config.requestUpdate();
                     break;
                 case 5:
-                    view.gps.data = elem;
+                    view.gps = JSON.stringify(elem);
                     view.gps.requestUpdate();
                     break;
                 case 6:
-                    view.sat.data = elem;
+                    view.sat = JSON.stringify(elem);
                     view.sat.requestUpdate();
                     break;
             }

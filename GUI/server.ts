@@ -27,19 +27,20 @@ server.get("/getdata", (req,res)=>{
     }
 })
 
-const gfsk = spawn("../cmake-build-release/gfsk.exe", ["434650000"])
+const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434650000", "434850000"])
 const decode = new TextDecoder();
 
 let stdin_buff = "";
 
 function ingest_message(msg: string) {
     const json: GFSKMessage  = JSON.parse(msg);
-    console.log(json.type);
+    
     switch(json.type){
         case "center":
             break
         case "packet":
             const packet = parse_packet(json);
+            console.log(packet);
             packet_buffer.push(packet); // pushing packet to buffer
             break;
         case "closed":
