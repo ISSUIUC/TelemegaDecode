@@ -135,7 +135,7 @@ export class ConfigPacketView extends LitElement {
                     <td> ${this.data.main_deploy}
                 </tr>
                 <tr>
-                    <th> Flight_Log_Max: </th>
+                    <th> Log_Max: </th>
                     <td> ${this.data.flight_log_max}
                 </tr>
                 <tr>
@@ -269,7 +269,7 @@ export class TeleMegaDataView extends LitElement {
     static styles = css`
     .grid-container {
         display: grid;
-        grid-template-columns: auto auto;
+        grid-template-columns: 50% 50%;
         border: solid 1px;
     }
     .grid-item {
