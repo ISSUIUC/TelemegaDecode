@@ -1,12 +1,12 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js"
-import { DecodedPacket, SensorPacket, ConfigPacket, GPSPacket, SatellitePacket, parse_packet } from "../packet";
+import { DecodedPacket, SensorPacket, ConfigPacket, GPSPacket, SatellitePacket, parse_packet, KalmanVoltagePacket } from "../packet";
 
 
 @customElement('sensor-packet')
-export class SensorPacketView extends LitElement {
+export class KalmanVoltagePacketView extends LitElement {
     @property()
-    data: SensorPacket;
+    data: KalmanVoltagePacket;
     static css = css`
     .tab {
         display: inline-block;
@@ -36,28 +36,16 @@ export class SensorPacketView extends LitElement {
                     <td> ${this.data.state}
                 </tr>
                 <tr>
-                    <th> Accel: </th>
-                    <td> ${this.data.accel}
-                </tr>
-                <tr>
-                    <th> Pres: </th>
-                    <td> ${this.data.pres}
-                </tr>
-                <tr>
-                    <th> Temp: </th>
-                    <td> ${this.data.temp}
-                </tr>
-                <tr>
                     <th> V_Batt: </th>
                     <td> ${this.data.v_batt}
                 </tr>
                 <tr>
-                    <th> Sense_d: </th>
-                    <td> ${this.data.sense_d}
+                    <th> V_Pyro: </th>
+                    <td> ${this.data.v_pyro}
                 </tr>
                 <tr>
-                    <th> Sense_m: </th>
-                    <td> ${this.data.sense_m}
+                    <th> Sense: </th>
+                    <td> ${this.data.sense}
                 </tr>
                 <tr>
                     <th> Acceleration: </th>
@@ -73,7 +61,7 @@ export class SensorPacketView extends LitElement {
                 </tr>
                 <tr>
                     <th> Ground_Press: </th>
-                    <td> ${this.data.ground_press}
+                    <td> ${this.data.ground_pres}
                 </tr>
                 <tr>
                     <th> Ground_Accel: </th>
@@ -270,7 +258,7 @@ export class SatellitePacketView extends LitElement {
 @customElement('telemetrum-dataview')
 export class TeleMegaDataView extends LitElement {
     @property()
-    public sensor: SensorPacketView = new SensorPacketView();
+    public sensor: KalmanVoltagePacketView = new KalmanVoltagePacketView();
 
     @property()
     public config: ConfigPacketView = new ConfigPacketView();
@@ -345,10 +333,10 @@ export class FourDataView extends LitElement {
     render() {
         return html`
       <div class="grid-container">
-        <div class="grid-item"><b>TeleMega 1 Data</b></div>
-        <div class="grid-item"><b>TeleMega 2 Data</b></div>
-        <div class="grid-item"><b>TeleMega 3 Data</b></div>
-        <div class="grid-item"><b>TeleMega 4 Data</b></div>
+        <div class="grid-item"><b>Sustainer AL1</b></div>
+        <div class="grid-item"><b>Sustainer AL0</b></div>
+        <div class="grid-item"><b>Booster AL0</b></div>
+        <div class="grid-item"><b>Other</b></div>
         <div class="grid-item">${view}</div>
         <div class="grid-item">${view2}</div>
         <div class="grid-item">${view3}</div>
@@ -357,21 +345,6 @@ export class FourDataView extends LitElement {
             `
     }
 }
-
-// <table>
-//         <tr>
-//             <th>TeleMega 1 Data:</th>
-//             <th>TeleMega 2 Data:</th>
-//             <th>TeleMega 3 Data:</th>
-//             <th>TeleMega 4 Data:</th>
-//         </tr>
-//         <tr>
-//             <td>${view}</td>
-//             <td>${view2}</td>
-//             <td>${view3}</td>
-//             <td>${view4}</td>
-//         </tr>
-//       </table>
 
 
 const fullDataView = new FourDataView();
@@ -386,16 +359,14 @@ setInterval(async ()=>{
 
     if(json instanceof Array){
         for(const elem of json){
-            let v = null;
+            let v = view4;
             if(elem.serial == 10978){
                 v = view;
             }
             if(elem.serial == 11047){
                 v = view2;
             }
-            if(elem.serial == 1018){
-                v = view4;
-            }
+            
             if(elem.serial == 11069){
                 v = view3
             }
@@ -403,19 +374,19 @@ setInterval(async ()=>{
             switch(elem.ptype){
                 case 1:
                 case 9:
-                    v.sensor.data = elem;
+                    v.sensor.data = elem as KalmanVoltagePacket;
                     v.sensor.requestUpdate();
                     break;
                 case 4:
-                    v.config.data = elem;
+                    v.config.data = elem as ConfigPacket;
                     v.config.requestUpdate();
                     break;
                 case 5:
-                    v.gps.data = elem;
+                    v.gps.data = elem as GPSPacket;
                     v.gps.requestUpdate();
                     break;
                 case 6:
-                    v.sat.data = elem;
+                    v.sat.data = elem as SatellitePacket;
                     v.sat.requestUpdate();
                     break;
             }
