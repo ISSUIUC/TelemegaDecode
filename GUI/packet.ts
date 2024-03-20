@@ -5,7 +5,7 @@ export type GFSKPacket = {
     id: number,
 }
 
-export type DecodedPacket = (SensorPacket | ConfigPacket | GPSPacket | SatellitePacket | KalmanVoltagePacket | UnknownPacket) & {crc: boolean};
+export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatellitePacket | KalmanVoltagePacket | UnknownPacket;
 
 export type KalmanVoltagePacket = {
     serial: number;
@@ -22,6 +22,7 @@ export type KalmanVoltagePacket = {
     acceleration: number;
     speed: number;
     height: number;
+    crc: boolean;
 }
 
 export type SensorPacket = {
@@ -42,6 +43,7 @@ export type SensorPacket = {
     ground_accel : number;
     accel_plus_g : number;
     accel_minus_g : number;
+    crc: boolean;
 }
 
 export type ConfigPacket = {
@@ -56,6 +58,7 @@ export type ConfigPacket = {
     flight_log_max : number;
     callsign : string;
     version : string;
+    crc: boolean;
 }
 
 export type GPSPacket = {
@@ -83,6 +86,7 @@ export type GPSPacket = {
     ground_speed : number;
     climb_rate : number;
     course : number;
+    crc: boolean;
 }
 
 export type SatellitePacket = {
@@ -91,12 +95,14 @@ export type SatellitePacket = {
     ptype : 6;
     channels : number;
     sats : number[];
+    crc: boolean;
 }
 
 export type UnknownPacket = {
     serial: number;
     tick: number;
     ptype: number;
+    crc: boolean;
 }
 
 export type GFSKMessage = GFSKPacket 
