@@ -26,7 +26,8 @@ function parse_packet(packet) {
             "ground_press": i16[12],
             "ground_accel": i16[13],
             "accel_plus_g": i16[14],
-            "accel_minus_g": i16[15]
+            "accel_minus_g": i16[15],
+            "crc": packet.crc
         };
     }
     else if (ptype == 4) {
@@ -41,7 +42,8 @@ function parse_packet(packet) {
             "main_deploy": u16[6],
             "flight_log_max": u16[7],
             "callsign": decoder.decode(u8.subarray(16, 24)),
-            "version": decoder.decode(u8.subarray(24, 32))
+            "version": decoder.decode(u8.subarray(24, 32)),
+            "crc": packet.crc
         };
     }
     else if (ptype == 5) {
@@ -69,7 +71,8 @@ function parse_packet(packet) {
             "mode": u8[25],
             "ground_speed": u16[13] / 100,
             "climb_rate": i16[14] / 100,
-            "course": u8[30] * 2
+            "course": u8[30] * 2,
+            "crc": packet.crc
         };
     }
     else if (ptype == 6) {
@@ -78,7 +81,8 @@ function parse_packet(packet) {
             "tick": u16[1] / 100,
             "ptype": 6,
             "channels": u8[5],
-            "sats": Array.from(u8.subarray(6, 30))
+            "sats": Array.from(u8.subarray(6, 30)),
+            "crc": packet.crc
         };
     }
     else if (ptype == 9) {
@@ -96,13 +100,17 @@ function parse_packet(packet) {
             "accel_minus_g": i16[12],
             "acceleration": i16[13] / 16,
             "speed": i16[14] / 16,
-            "height": i16[15]
+            "height": i16[15],
+            "crc": packet.crc
         };
     }
     else {
-        // return {
-        //     "ptype" : ptype
-        // }
+        return {
+            "serial": u16[0],
+            "tick": u16[1] / 100,
+            "ptype": ptype,
+            "crc": packet.crc
+        };
     }
 }
 exports.parse_packet = parse_packet;
