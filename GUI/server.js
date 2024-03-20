@@ -23,7 +23,8 @@ server.get("/getdata", function (req, res) {
         res.json([]);
     }
 });
-var gfsk = (0, child_process_1.spawn)("..\\cmake-build-release\\gfsk.exe", ["434650000", "434850000"]);
+var gfsk = (0, child_process_1.spawn)("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"]);
+// const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434550000"])
 var decode = new TextDecoder();
 var stdin_buff = "";
 function ingest_message(msg) {

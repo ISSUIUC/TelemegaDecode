@@ -1,16 +1,16 @@
 export type GFSKPacket = {
-    type: "packet",
+    ptype: "packet",
     crc: boolean,
     data: number[],
     id: number,
 }
 
-export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatellitePacket | KalmanVoltagePacket | UnknownPacket;
+export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatellitePacket | KalmanVoltagePacket;
 
 export type KalmanVoltagePacket = {
     serial: number;
     tick: number;
-    type: number;
+    ptype: number;
     state: number;
     v_batt: number;
     v_pyro: number;
@@ -27,7 +27,7 @@ export type KalmanVoltagePacket = {
 export type SensorPacket = {
     serial : number;
     tick : number;
-    type : 1;
+    ptype : 1;
     state : number;
     accel : number;
     pres : number;
@@ -47,7 +47,7 @@ export type SensorPacket = {
 export type ConfigPacket = {
     serial : number;
     tick : number;
-    type : 4,
+    ptype : 4,
     flight : number;
     config_major : number;
     config_minor : number;
@@ -61,7 +61,7 @@ export type ConfigPacket = {
 export type GPSPacket = {
     serial : number;
     tick : number;
-    type : 5;
+    ptype : 5;
     nsats : number;
     valid : boolean;
     running: boolean;
@@ -88,30 +88,30 @@ export type GPSPacket = {
 export type SatellitePacket = {
     serial : number;
     tick : number;
-    type : 6;
+    ptype : 6;
     channels : number;
     sats : number[];
 }
 
 export type UnknownPacket = {
-    type: number;
+    ptype: number;
 }
 
 export type GFSKMessage = GFSKPacket 
 | {
-    type: "error",
+    ptype: "error",
     error: string,
     file: string,
     line: number,
 } | {
-    type: "gain",
+    ptype: "gain",
     lna: number,
     vga: number,
 } | {
-    type: "center",
+    ptype: "center",
     center: number,
 } | {
-    type: "closed"
+    ptype: "closed"
 }
 
 const decoder = new TextDecoder();
@@ -121,12 +121,12 @@ export function parse_packet(packet: GFSKPacket) : DecodedPacket {
     const u16 = new Uint16Array(u8.buffer);
     const i16 = new Int16Array(u8.buffer);
     const i32 = new Int32Array(u8.buffer);
-    const type = u8[4];
-    if(type == 1){ //TeleMetrum v1.x Sensor Data
+    const ptype = u8[4];
+    if(ptype == 1){ //TeleMetrum v1.x Sensor Data
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : 1,
+            "ptype" : 1,
             "state" : u8[5],
             "accel" : i16[3],
             "pres" : i16[4],
@@ -142,11 +142,11 @@ export function parse_packet(packet: GFSKPacket) : DecodedPacket {
             "accel_plus_g" : i16[14],
             "accel_minus_g" : i16[15],
         }
-    } else if(type == 4) {
+    } else if(ptype == 4) {
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : 4,
+            "ptype" : 4,
             "flight" : u16[3],
             "config_major" : u8[8],
             "config_minor" : u8[9],
@@ -156,11 +156,11 @@ export function parse_packet(packet: GFSKPacket) : DecodedPacket {
             "callsign" : decoder.decode(u8.subarray(16,24)),
             "version" : decoder.decode(u8.subarray(24,32)),
         }
-    } else if(type == 5){
+    } else if(ptype == 5){
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : 5,
+            "ptype" : 5,
             "nsats" : u8[5] & 0x7,
             "valid" : (u8[5] & 0x8) != 0,
             "running": (u8[5] & 0x10) != 0,
@@ -183,19 +183,19 @@ export function parse_packet(packet: GFSKPacket) : DecodedPacket {
             "climb_rate" : i16[14] / 100,
             "course" : u8[30] * 2,
         }
-    } else if(type == 6){
+    } else if(ptype == 6){
         return {
             "serial" : u16[0],
             "tick" : u16[1] / 100,
-            "type" : 6,
+            "ptype" : 6,
             "channels" : u8[5],
             "sats" : Array.from(u8.subarray(6,30))
         }
-    } else if(type == 9){
+    } else if(ptype == 9){
         return {
             "serial": u16[0],
             "tick": u16[1] / 100,
-            "type": 9,
+            "ptype": 9,
             "state": u8[5],
             "v_batt": i16[3],
             "v_pyro": i16[4],
@@ -209,8 +209,8 @@ export function parse_packet(packet: GFSKPacket) : DecodedPacket {
             "height": i16[15],
         }
     } else {
-        return {
-            "type" : type
-        }
+        // return {
+        //     "ptype" : ptype
+        // }
     }
 }
