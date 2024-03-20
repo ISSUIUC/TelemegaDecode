@@ -16,7 +16,7 @@ export class SensorPacketView extends LitElement {
     render() {
         if(this.data == null) return html`NODATA`;
         return html`
-            Sensor Packet:
+            CRC: ${this.data.crc}
 
             <table>
                 <tr>
@@ -101,7 +101,7 @@ export class ConfigPacketView extends LitElement {
     render() {
         if(this.data == null) return html`NODATA`;
         return html`
-            Sensor Packet:
+            CRC: ${this.data.crc}
 
             <table>
                 <tr>
@@ -162,7 +162,7 @@ export class GpsPacketView extends LitElement {
     render() {
         if(this.data == null) return html`NODATA`;
         return html`
-            Sensor Packet
+            CRC: ${this.data.crc}
 
             <table>
                 <tr>
@@ -248,7 +248,21 @@ export class SatellitePacketView extends LitElement {
     render() {
         if(this.data == null) return html`NODATA`;
         return html`
-            Sensor Packet
+            CRC: ${this.data.crc}
+            <table>
+                <tr>
+                    <th>Serial:</th>
+                    <td>${this.data.serial}</td>
+                </tr>
+                <tr>
+                    <th>Tick:</th>
+                    <td>${this.data.tick}</td>
+                </tr>
+                <tr>
+                    <th>Channels:</th>
+                    <td>${this.data.channels}</td>
+                </tr>
+            </table>
         `
     }
 }
@@ -298,7 +312,7 @@ const view2 = new TeleMegaDataView();
 const view3 = new TeleMegaDataView();
 const view4 = new TeleMegaDataView();
 
-view.serial = 1018;
+
 
 // document.body.appendChild(view);
 // document.body.appendChild(view2);
