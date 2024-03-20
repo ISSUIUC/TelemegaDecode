@@ -333,12 +333,12 @@ export class FourDataView extends LitElement {
     render() {
         return html`
       <div class="grid-container">
-        <div class="grid-item"><b>Sustainer AL1</b></div>
         <div class="grid-item"><b>Sustainer AL0</b></div>
+        <div class="grid-item"><b>Sustainer AL1</b></div>
         <div class="grid-item"><b>Booster AL0</b></div>
         <div class="grid-item"><b>Other</b></div>
-        <div class="grid-item">${view}</div>
         <div class="grid-item">${view2}</div>
+        <div class="grid-item">${view}</div>
         <div class="grid-item">${view3}</div>
         <div class="grid-item">${view4}</div>
       </div>
