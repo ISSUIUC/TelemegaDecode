@@ -275,7 +275,7 @@ export class TeleMegaDataView extends LitElement {
     }
     .grid-item {
         border: solid 1px;
-        padding: 5px;
+        padding: 3px;
     }
     `
     render() {
@@ -325,7 +325,7 @@ export class FourDataView extends LitElement {
     static styles = css`
     .grid-container {
         display: grid;
-        grid-template-columns: auto auto auto auto;
+        grid-template-columns: 25% 25% 25% 25%;
     }
     `
     render() {
