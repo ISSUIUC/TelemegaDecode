@@ -7,12 +7,12 @@ function parse_packet(packet) {
     var u16 = new Uint16Array(u8.buffer);
     var i16 = new Int16Array(u8.buffer);
     var i32 = new Int32Array(u8.buffer);
-    var type = u8[4];
-    if (type == 1) { //TeleMetrum v1.x Sensor Data
+    var ptype = u8[4];
+    if (ptype == 1) { //TeleMetrum v1.x Sensor Data
         return {
             "serial": u16[0],
             "tick": u16[1] / 100,
-            "type": u8[4],
+            "ptype": 1,
             "state": u8[5],
             "accel": i16[3],
             "pres": i16[4],
@@ -29,11 +29,11 @@ function parse_packet(packet) {
             "accel_minus_g": i16[15]
         };
     }
-    else if (type == 4) {
+    else if (ptype == 4) {
         return {
             "serial": u16[0],
             "tick": u16[1] / 100,
-            "type": u8[4],
+            "ptype": 4,
             "flight": u16[3],
             "config_major": u8[8],
             "config_minor": u8[9],
@@ -44,11 +44,11 @@ function parse_packet(packet) {
             "version": decoder.decode(u8.subarray(24, 32))
         };
     }
-    else if (type == 5) {
+    else if (ptype == 5) {
         return {
             "serial": u16[0],
             "tick": u16[1] / 100,
-            "type": u8[4],
+            "ptype": 5,
             "nsats": u8[5] & 0x7,
             "valid": (u8[5] & 0x8) != 0,
             "running": (u8[5] & 0x10) != 0,
@@ -72,14 +72,37 @@ function parse_packet(packet) {
             "course": u8[30] * 2
         };
     }
-    else if (type == 6) {
+    else if (ptype == 6) {
         return {
             "serial": u16[0],
             "tick": u16[1] / 100,
-            "type": u8[4],
+            "ptype": 6,
             "channels": u8[5],
-            "sats": u16.subarray(3, 15)
+            "sats": Array.from(u8.subarray(6, 30))
         };
+    }
+    else if (ptype == 9) {
+        return {
+            "serial": u16[0],
+            "tick": u16[1] / 100,
+            "ptype": 9,
+            "state": u8[5],
+            "v_batt": i16[3],
+            "v_pyro": i16[4],
+            "sense": Array.from(u8.slice(10, 16)),
+            "ground_pres": i32[4],
+            "ground_accel": i16[10],
+            "accel_plus_g": i16[11],
+            "accel_minus_g": i16[12],
+            "acceleration": i16[13] / 16,
+            "speed": i16[14] / 16,
+            "height": i16[15]
+        };
+    }
+    else {
+        // return {
+        //     "ptype" : ptype
+        // }
     }
 }
 exports.parse_packet = parse_packet;

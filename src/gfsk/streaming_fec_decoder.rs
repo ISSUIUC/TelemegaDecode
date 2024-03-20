@@ -1,4 +1,5 @@
-use crate::ao;
+use crate::gfsk::ao;
+use crate::gfsk::packet::Packet;
 
 const SYNC_PATTERN: [u8; 34] = to_bits(b"1010101010101010101101001110010001");
 const MESSAGE_LEN: usize = 72 * 8;
@@ -7,14 +8,6 @@ enum FecDecoderState {
     SYNCING,
     BUFFERING
 }
-
-
-#[derive(Debug)]
-pub struct Packet {
-    pub crc_match: bool,
-    pub data: [u8; 34]
-}
-
 
 pub struct StreamingFecDecoder {
     sync_buffer: [u8; SYNC_PATTERN.len()],

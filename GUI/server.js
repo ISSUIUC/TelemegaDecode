@@ -14,14 +14,17 @@ server.get("/", function (req, res) {
 });
 server.get("/getdata", function (req, res) {
     if (packet_buffer.length > 0) {
-        res.json(packet_buffer[0]);
-        packet_buffer.splice(0, 1);
+        // send all packets until theres none left
+        res.json(packet_buffer);
+        // empty the buffer
+        packet_buffer = [];
     }
     else {
-        res.json({});
+        res.json([]);
     }
 });
-//var gfsk = (0, child_process_1.spawn)("../cmake-build-release/gfsk.exe", ["434650000"]);
+var gfsk = (0, child_process_1.spawn)("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"]);
+// const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434550000"])
 var decode = new TextDecoder();
 var stdin_buff = "";
 function ingest_message(msg) {
@@ -31,7 +34,8 @@ function ingest_message(msg) {
             break;
         case "packet":
             var packet = (0, packet_1.parse_packet)(json);
-            packet_buffer.push(packet);
+            console.log(packet);
+            packet_buffer.push(packet); // pushing packet to buffer
             break;
         case "closed":
             break;
@@ -41,24 +45,24 @@ function ingest_message(msg) {
             break;
     }
 }
-// gfsk.stdout.on("data", function (msg) {
-//     var str = decode.decode(msg);
-//     for (var i = 0; i < str.length; i++) {
-//         if (str[i] == '\n') {
-//             ingest_message(stdin_buff);
-//             stdin_buff = "";
-//         }
-//         else {
-//             stdin_buff += str[i];
-//         }
-//     }
-// });
-// gfsk.stderr.on("data", function (msg) {
-//     console.log("stderr", decode.decode(msg).trimEnd());
-// });
-// gfsk.on("exit", function (code) {
-//     console.log("Exit", code);
-// });
+gfsk.stdout.on("data", function (msg) {
+    var str = decode.decode(msg);
+    for (var i = 0; i < str.length; i++) {
+        if (str[i] == '\n') {
+            ingest_message(stdin_buff);
+            stdin_buff = "";
+        }
+        else {
+            stdin_buff += str[i];
+        }
+    }
+});
+gfsk.stderr.on("data", function (msg) {
+    console.log("stderr", decode.decode(msg).trimEnd());
+});
+gfsk.on("exit", function (code) {
+    console.log("Exit", code);
+});
 server.listen(8084, function () {
     console.log("Begin");
 });

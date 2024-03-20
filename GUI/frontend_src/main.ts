@@ -1,6 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js"
-import { DecodedPacket, SensorPacket, ConfigPacket, GPSPacket, SatellitePacket } from "../packet";
+import { DecodedPacket, SensorPacket, ConfigPacket, GPSPacket, SatellitePacket, parse_packet } from "../packet";
 
 
 @customElement('sensor-packet')
@@ -14,6 +14,7 @@ export class SensorPacketView extends LitElement {
     }
     `
     render() {
+        if(this.data == null) return html`NODATA`;
         return html`
             Sensor Packet:
 
@@ -28,7 +29,7 @@ export class SensorPacketView extends LitElement {
                 </tr>
                 <tr>
                     <th> Type: </th>
-                    <td> ${this.data.type}
+                    <td> ${this.data.ptype}
                 </tr>
                 <tr>
                     <th> State: </th>
@@ -98,6 +99,7 @@ export class ConfigPacketView extends LitElement {
     data: ConfigPacket;
 
     render() {
+        if(this.data == null) return html`NODATA`;
         return html`
             Sensor Packet:
 
@@ -112,7 +114,7 @@ export class ConfigPacketView extends LitElement {
                 </tr>
                 <tr>
                     <th> Type: </th>
-                    <td> ${this.data.type}
+                    <td> ${this.data.ptype}
                 </tr>
                 <tr>
                     <th> Flight: </th>
@@ -158,6 +160,7 @@ export class GpsPacketView extends LitElement {
     data: GPSPacket;
 
     render() {
+        if(this.data == null) return html`NODATA`;
         return html`
             Sensor Packet
 
@@ -172,7 +175,7 @@ export class GpsPacketView extends LitElement {
                 </tr>
                 <tr>
                     <th> Type: </th>
-                    <td> ${this.data.type}
+                    <td> ${this.data.ptype}
                 </tr>
                 <tr>
                     <th> nsats: </th>
@@ -243,6 +246,7 @@ export class SatellitePacketView extends LitElement {
     data: SatellitePacket;
 
     render() {
+        if(this.data == null) return html`NODATA`;
         return html`
             Sensor Packet
         `
@@ -251,9 +255,6 @@ export class SatellitePacketView extends LitElement {
 
 @customElement('telemetrum-dataview')
 export class TeleMegaDataView extends LitElement {
-    @property()
-    public serial: number;
-
     @property()
     public sensor: SensorPacketView = new SensorPacketView();
 
@@ -280,8 +281,6 @@ export class TeleMegaDataView extends LitElement {
     render() {
         return html`
     <div>
-        Serial: ${this.serial}
-        <br>
       <div class="grid-container">
         <div class="grid-item">Sensor: ${this.sensor}</div>
         <div class="grid-item">Config: ${this.config}</div>
@@ -305,247 +304,6 @@ view.serial = 1018;
 // document.body.appendChild(view2);
 // document.body.appendChild(view3);
 // document.body.appendChild(view4);
-
-
-
-
-let number = 7;
-let string = "str";
-let boolean = true;
-
-view.sensor.data = {serial : number,
-    tick : number,
-    type : 1,
-    state : number,
-    accel : number,
-    pres : number,
-    temp : number,
-    v_batt : number,
-    sense_d : number,
-    sense_m : number,
-    acceleration : number,
-    speed : number,
-    height : number,
-    ground_press : number,
-    ground_accel : number,
-    accel_plus_g : number,
-    accel_minus_g : number,}
-
-view.config.data = {
-    serial : number,
-    tick : number,
-    type : 4,
-    flight : number,
-    config_major : number,
-    config_minor : number,
-    apogee_delay : number,
-    main_deploy : number,
-    flight_log_max : number,
-    callsign : string,
-    version : string,
-}
-
-view.gps.data = {
-    serial : number,
-    tick : number,
-    type : 5,
-    nsats : number,
-    valid : boolean,
-    running: boolean,
-    date_valid: boolean,
-    course_valid: boolean,
-    altitude : number,
-    latitude : number,
-    longitude : number,
-    year : number,
-    month : number,
-    day : number,
-    hour : number,
-    minute : number,
-    second : number,
-    pdop : number,
-    hdop : number,
-    vdop : number,
-    mode : number,
-    ground_speed : number,
-    climb_rate : number,
-    course : number,
-}
-
-view2.sensor.data = {serial : number,
-    tick : number,
-    type : 1,
-    state : number,
-    accel : number,
-    pres : number,
-    temp : number,
-    v_batt : number,
-    sense_d : number,
-    sense_m : number,
-    acceleration : number,
-    speed : number,
-    height : number,
-    ground_press : number,
-    ground_accel : number,
-    accel_plus_g : number,
-    accel_minus_g : number,}
-
-view2.config.data = {
-    serial : number,
-    tick : number,
-    type : 4,
-    flight : number,
-    config_major : number,
-    config_minor : number,
-    apogee_delay : number,
-    main_deploy : number,
-    flight_log_max : number,
-    callsign : string,
-    version : string,
-}
-view2.gps.data = {
-    serial : number,
-    tick : number,
-    type : 5,
-    nsats : number,
-    valid : boolean,
-    running: boolean,
-    date_valid: boolean,
-    course_valid: boolean,
-    altitude : number,
-    latitude : number,
-    longitude : number,
-    year : number,
-    month : number,
-    day : number,
-    hour : number,
-    minute : number,
-    second : number,
-    pdop : number,
-    hdop : number,
-    vdop : number,
-    mode : number,
-    ground_speed : number,
-    climb_rate : number,
-    course : number,
-}
-
-view3.sensor.data = {serial : number,
-    tick : number,
-    type : 1,
-    state : number,
-    accel : number,
-    pres : number,
-    temp : number,
-    v_batt : number,
-    sense_d : number,
-    sense_m : number,
-    acceleration : number,
-    speed : number,
-    height : number,
-    ground_press : number,
-    ground_accel : number,
-    accel_plus_g : number,
-    accel_minus_g : number,}
-
-view3.config.data = {
-    serial : number,
-    tick : number,
-    type : 4,
-    flight : number,
-    config_major : number,
-    config_minor : number,
-    apogee_delay : number,
-    main_deploy : number,
-    flight_log_max : number,
-    callsign : string,
-    version : string,
-}
-view3.gps.data = {
-    serial : number,
-    tick : number,
-    type : 5,
-    nsats : number,
-    valid : boolean,
-    running: boolean,
-    date_valid: boolean,
-    course_valid: boolean,
-    altitude : number,
-    latitude : number,
-    longitude : number,
-    year : number,
-    month : number,
-    day : number,
-    hour : number,
-    minute : number,
-    second : number,
-    pdop : number,
-    hdop : number,
-    vdop : number,
-    mode : number,
-    ground_speed : number,
-    climb_rate : number,
-    course : number,
-}
-
-view4.sensor.data = {serial : number,
-    tick : number,
-    type : 1,
-    state : number,
-    accel : number,
-    pres : number,
-    temp : number,
-    v_batt : number,
-    sense_d : number,
-    sense_m : number,
-    acceleration : number,
-    speed : number,
-    height : number,
-    ground_press : number,
-    ground_accel : number,
-    accel_plus_g : number,
-    accel_minus_g : number,}
-
-view4.config.data = {
-    serial : number,
-    tick : number,
-    type : 4,
-    flight : number,
-    config_major : number,
-    config_minor : number,
-    apogee_delay : number,
-    main_deploy : number,
-    flight_log_max : number,
-    callsign : string,
-    version : string,
-}
-view4.gps.data = {
-    serial : number,
-    tick : number,
-    type : 5,
-    nsats : number,
-    valid : boolean,
-    running: boolean,
-    date_valid: boolean,
-    course_valid: boolean,
-    altitude : number,
-    latitude : number,
-    longitude : number,
-    year : number,
-    month : number,
-    day : number,
-    hour : number,
-    minute : number,
-    second : number,
-    pdop : number,
-    hdop : number,
-    vdop : number,
-    mode : number,
-    ground_speed : number,
-    climb_rate : number,
-    course : number,
-}
-
 
 
 @customElement('four-data-view')
@@ -611,24 +369,40 @@ setInterval(async ()=>{
     in_flight = true;
     const json: DecodedPacket[] = await (await fetch("/getdata")).json()
     in_flight = false;
+
     if(json instanceof Array){
         for(const elem of json){
-            switch(elem.type){
+            let v = null;
+            if(elem.serial == 10978){
+                v = view;
+            }
+            if(elem.serial == 11047){
+                v = view2;
+            }
+            if(elem.serial == 1018){
+                v = view4;
+            }
+            if(elem.serial == 11069){
+                v = view3
+            }
+            console.log(elem)
+            switch(elem.ptype){
                 case 1:
-                    view.sensor.data = elem;
-                    view.sensor.requestUpdate();
+                case 9:
+                    v.sensor.data = elem;
+                    v.sensor.requestUpdate();
                     break;
                 case 4:
-                    view.config.data = elem;
-                    view.config.requestUpdate();
+                    v.config.data = elem;
+                    v.config.requestUpdate();
                     break;
                 case 5:
-                    view.gps.data = elem;
-                    view.gps.requestUpdate();
+                    v.gps.data = elem;
+                    v.gps.requestUpdate();
                     break;
                 case 6:
-                    view.sat.data = elem;
-                    view.sat.requestUpdate();
+                    v.sat.data = elem;
+                    v.sat.requestUpdate();
                     break;
             }
             console.log(elem);
