@@ -1,13 +1,9 @@
-mod shifter;
-mod streaming_gfsk;
-mod transition;
-mod streaming_bit_sync;
-mod streaming_fec_decoder;
+
 mod ao;
 mod iq_source;
 pub mod packet;
+mod cpp_gfsk;
 
-use std::collections::VecDeque;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,11 +11,9 @@ use std::time::Instant;
 use clap::Parser;
 use num_complex::Complex;
 use bus::Bus;
+use crate::gfsk::cpp_gfsk::FullDecoder;
 use crate::gfsk::iq_source::{FileIQSource, HackRFIQSource, IQSource};
 use crate::gfsk::packet::Packet;
-use crate::gfsk::streaming_bit_sync::StreamingBitSync;
-use crate::gfsk::streaming_fec_decoder::StreamingFecDecoder;
-use crate::gfsk::streaming_gfsk::StreamingGFSKDecoder;
 
 const HZ: f64 = 20_000_000.0;
 const BAUD: f64 = 38400.0;
@@ -41,38 +35,6 @@ impl Arguments {
     }
 }
 
-
-struct Decoder {
-    fec: StreamingFecDecoder,
-    bit: StreamingBitSync,
-    gfsk: StreamingGFSKDecoder,
-    packets: VecDeque<Packet>,
-    center: f64,
-}
-
-impl Decoder {
-    fn new(center: f64, hz: f64, baud: f64) -> Decoder {
-        Decoder {
-            fec: StreamingFecDecoder::new(),
-            bit: StreamingBitSync::new(hz/baud),
-            gfsk: StreamingGFSKDecoder::new(hz, center),
-            packets: VecDeque::with_capacity(1000),
-            center
-        }
-    }
-
-    fn feed(&mut self, value: &[Complex<f32>]) {
-        self.gfsk.feed(value, |trans| {
-            self.bit.feed(trans, |bit| {
-                self.fec.feed(bit, |packet| {
-                    self.packets.push_back(packet);
-                });
-            });
-        });
-    }
-}
-
-
 pub fn start_decoders(new_packet: fn(f64, Packet)) {
     let start = Instant::now();
     let args = Arguments::parse();
@@ -91,13 +53,13 @@ pub fn start_decoders(new_packet: fn(f64, Packet)) {
 
     let mut worker_handles = Vec::new();
     for freq in args.frequencies {
-        let mut decoder = Decoder::new(freq - center, HZ, BAUD);
         let mut bus_recv = bus.add_rx();
         let handle = std::thread::spawn(move || {
+            let mut decoder = FullDecoder::new(freq - center, HZ, BAUD);
             while let Ok(packet) = bus_recv.recv() {
                 decoder.feed(&packet);
-                while let Some(packet) = decoder.packets.pop_front() {
-                    new_packet(decoder.center, packet);
+                while let Some(packet) = decoder.get_queued() {
+                    new_packet(decoder.center(), packet);
                 }
             }
         });
