@@ -24,15 +24,13 @@ server.get("/getdata", function (req, res) {
         res.json([]);
     }
 });
-<<<<<<< HEAD
 var gfsk = (0, child_process_1.spawn)("../build/gfsk", ["436350000", "436550000", "436750000"]);
-=======
-var gfsk = (0, child_process_1.spawn)("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"]);
+// var gfsk = (0, child_process_1.spawn)("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"]);
+
 var date = new Date();
 var log_path = "log" + date.getDay() + '.' + date.getHours() + '.' + date.getMinutes() + '.' + date.getSeconds();
 console.log(log_path);
->>>>>>> main
-// const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434550000"])
+
 var decode = new TextDecoder();
 var stdin_buff = "";
 function ingest_message(msg) {
