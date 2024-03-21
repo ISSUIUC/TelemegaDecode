@@ -27,7 +27,7 @@ server.get("/getdata", (req,res)=>{
     }
 })
 
-const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"])
+const gfsk = spawn("../build/gfsk", ["436350000", "436550000", "436750000"])
 // const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434550000"])
 const decode = new TextDecoder();
 

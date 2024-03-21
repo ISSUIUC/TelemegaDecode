@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.11)
 
 project(GFSK)
 SET(CMAKE_CXX_STANDARD 20)
-
+set(
+    CMAKE_OSX_ARCHITECTURES arm64
+)
 include("vcpkg/scripts/buildsystems/vcpkg.cmake")
 set(CMAKE_TOOLCHAIN_FILE "vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "" FORCE)
 if (WIN32)

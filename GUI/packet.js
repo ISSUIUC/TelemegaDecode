@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse_packet = void 0;
 var decoder = new TextDecoder();
 function parse_packet(packet) {
@@ -82,7 +82,7 @@ function parse_packet(packet) {
             "ptype": 6,
             "channels": u8[5],
             "sats": Array.from(u8.subarray(6, 30)),
-            "crc": packet.crc
+            "crc": packet.crc,
         };
     }
     else if (ptype == 9) {
@@ -101,7 +101,7 @@ function parse_packet(packet) {
             "acceleration": i16[13] / 16,
             "speed": i16[14] / 16,
             "height": i16[15],
-            "crc": packet.crc
+            "crc": packet.crc,
         };
     }
     else {
