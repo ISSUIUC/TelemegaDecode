@@ -102,6 +102,8 @@ impl IQSource for HackRFIQSource {
         let buffer = self.hack_rf.rx().unwrap();
         let mut out = Vec::with_capacity(buffer.len() / 2);
         for (i, q) in buffer.into_iter().tuples() {
+            self.max_iq_reading = i8::max(self.max_iq_reading, i as i8);
+            self.max_iq_reading = i8::max(self.max_iq_reading, q as i8);
             out.push(Complex::new((i as i8) as f32, (q as i8) as f32));
         }
 
@@ -110,7 +112,7 @@ impl IQSource for HackRFIQSource {
             let changed;
             let new_gain;
             if self.max_iq_reading < 40 {
-                new_gain = i16::max(self.current_gain + 1, MAX_GAIN_SETTING);
+                new_gain = i16::min(self.current_gain + 1, MAX_GAIN_SETTING);
                 changed = true;
             } else if self.max_iq_reading > 90 {
                 new_gain = i16::max(self.current_gain - 1, MIN_GAIN_SETTING);
@@ -126,6 +128,7 @@ impl IQSource for HackRFIQSource {
                     let mut hack_rf = std::ptr::read(&self.hack_rf).stop_rx().unwrap();
                     hack_rf.set_vga_gain(vga as u16).unwrap();
                     hack_rf.set_lna_gain(lna as u16).unwrap();
+                    println!("gain = {vga},{lna} max = {}", self.max_iq_reading);
                     std::ptr::write(&mut self.hack_rf, hack_rf.into_rx_mode().unwrap());
                 }
                 self.current_gain = new_gain;

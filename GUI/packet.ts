@@ -10,7 +10,7 @@ export type DecodedPacket = SensorPacket | ConfigPacket | GPSPacket | SatelliteP
 export type KalmanVoltagePacket = {
     serial: number;
     tick: number;
-    ptype: number;
+    ptype: 9;
     state: number;
     v_batt: number;
     v_pyro: number;

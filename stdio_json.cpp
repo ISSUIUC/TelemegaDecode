@@ -4,6 +4,9 @@
 
 #include<nlohmann/json.hpp>
 #include"stdio_json.h"
+#include<mutex>
+
+std::mutex print_guard{};
 
 void output_packet(Packet const& p, size_t id){
     nlohmann::json json{
@@ -12,6 +15,7 @@ void output_packet(Packet const& p, size_t id){
         {"crc",p.crc_match},
         {"id",id},
     };
+    std::lock_guard<std::mutex> l(print_guard);
     std::cout << json << std::endl;
 }
 
@@ -21,6 +25,7 @@ void output_gain_setting(int lna, int vga){
         {"lna", lna},
         {"vga",vga},
     };
+    std::lock_guard<std::mutex> l(print_guard);
     std::cout << json << std::endl;
 }
 
@@ -31,6 +36,7 @@ void output_error(std::string error, const char * file, int line){
         {"file", file},
         {"line", line},
     };
+    std::lock_guard<std::mutex> l(print_guard);
     std::cout << json << std::endl;
 }
 
@@ -39,6 +45,7 @@ void output_center_freq(double center){
         {"type","center"},
         {"center", center},
     };
+    std::lock_guard<std::mutex> l(print_guard);
     std::cout << json << std::endl;
 }
 
@@ -46,5 +53,6 @@ void output_closed(){
     nlohmann::json json{
         {"type","closed"},
         };
+    std::lock_guard<std::mutex> l(print_guard);
     std::cout << json << std::endl;
 }

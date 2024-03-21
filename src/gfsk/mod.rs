@@ -8,6 +8,7 @@ mod iq_source;
 pub mod packet;
 
 use std::collections::VecDeque;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
@@ -80,7 +81,6 @@ pub fn start_decoders(new_packet: fn(f64, Packet)) {
     }
 
     let center = args.get_center();
-
     let mut src: Box<dyn IQSource + Send> = if let Some(file_name) = args.file {
         Box::new(FileIQSource::new(file_name))
     } else {
@@ -105,8 +105,15 @@ pub fn start_decoders(new_packet: fn(f64, Packet)) {
     }
 
     std::thread::spawn(move || {
+        let mut log = std::fs::File::create("loggy.dat").unwrap();
         loop {
             let buffer = src.read();
+            let mut u8 = Vec::new();
+            for c in &buffer {
+                u8.push(c.im as u8);
+                u8.push(c.re as u8);
+            }
+            log.write(&u8);
             if buffer.is_empty() {
                 return;
             }

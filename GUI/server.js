@@ -30,18 +30,15 @@ var stdin_buff = "";
 function ingest_message(msg) {
     var json = JSON.parse(msg);
     switch (json.type) {
-        case "center":
-            break;
         case "packet":
             var packet = (0, packet_1.parse_packet)(json);
-            console.log(packet);
             packet_buffer.push(packet); // pushing packet to buffer
             break;
+        case "center":
         case "closed":
-            break;
         case "error":
-            break;
         case "gain":
+            console.log(json);
             break;
     }
 }

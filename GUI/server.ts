@@ -37,18 +37,15 @@ function ingest_message(msg: string) {
     const json: GFSKMessage  = JSON.parse(msg);
     
     switch(json.type){
-        case "center":
-            break
         case "packet":
             const packet = parse_packet(json);
-            console.log(packet);
             packet_buffer.push(packet); // pushing packet to buffer
             break;
+        case "center":
         case "closed":
-            break;
         case "error":
-            break;
         case "gain":
+            console.log(json);
             break;
     }
 }

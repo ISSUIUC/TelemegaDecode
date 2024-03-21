@@ -23,7 +23,9 @@ impl StreamingBitSync {
         if self.alignment == 0.0 {
             self.alignment = idx;
             return;
-        } else if self.alignment > idx {
+        }
+
+        if self.alignment > idx {
             return;
         }
 

@@ -132,7 +132,7 @@ StreamingGFSKDecoder::StreamingGFSKDecoder(
         double center,
         std::function<void(Transition)> out
     ): shifter(-center, sample_rate), out(std::move(out)) {
-        off = 50;
+        off = 64;
         off_buffer_size = 1 + (size_t)std::ceil(std::abs(off));
         buffer_size = 1024*32;
         prev_samps.resize(off_buffer_size);
