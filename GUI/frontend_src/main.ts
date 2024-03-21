@@ -48,6 +48,14 @@ export class KalmanVoltagePacketView extends LitElement {
                     <td> ${this.data.sense}
                 </tr>
                 <tr>
+                    <th> v_apogee: </th>
+                    <td> ${this.data.v_apogee}
+                </tr>
+                <tr>
+                    <th> v_main: </th>
+                    <td> ${this.data.v_main}
+                </tr>
+                <tr>
                     <th> Acceleration: </th>
                     <td> ${this.data.acceleration}
                 </tr>

@@ -2,6 +2,9 @@
 exports.__esModule = true;
 exports.parse_packet = void 0;
 var decoder = new TextDecoder();
+function pyro_voltage(x) {
+    return (3.3 * x / 4095 * (100 + 27) / 27);
+}
 function parse_packet(packet) {
     var u8 = new Uint8Array(packet.data).slice(0, 32);
     var u16 = new Uint16Array(u8.buffer);
@@ -17,7 +20,7 @@ function parse_packet(packet) {
             "accel": i16[3],
             "pres": i16[4],
             "temp": i16[5] / 100,
-            "v_batt": i16[6],
+            "v_batt": i16[6].toString(),
             "sense_d": i16[7],
             "sense_m": i16[8],
             "acceleration": i16[9] / 16,
@@ -91,9 +94,11 @@ function parse_packet(packet) {
             "tick": u16[1] / 100,
             "ptype": 9,
             "state": u8[5],
-            "v_batt": i16[3],
-            "v_pyro": i16[4],
-            "sense": Array.from(u8.slice(10, 16)),
+            "v_batt": (3.3 * i16[3] / 4095 * (5.6 + 10.0) / 10.0).toFixed(2),
+            "v_pyro": pyro_voltage(i16[4]).toFixed(2),
+            "sense": Array.from(u8.slice(10, 14)).map(function (x) { return (x / 68 * 4.14).toFixed(2); }).join(' '),
+            "v_apogee": (u8[14] / 68 * 4.14).toFixed(2),
+            "v_main": (u8[15] / 68 * 4.14).toFixed(2),
             "ground_pres": i32[4],
             "ground_accel": i16[10],
             "accel_plus_g": i16[11],
