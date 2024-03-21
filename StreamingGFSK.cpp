@@ -1,6 +1,8 @@
 #include"StreamingGFSK.h"
 #include<iostream>
 #include<cmath>
+#include <complex>
+#include <sys/types.h>
 
 using cf = std::complex<float_type>;
 
