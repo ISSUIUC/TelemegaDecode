@@ -5,6 +5,7 @@
 #include "StreamSplitter.h"
 #include<algorithm>
 #include <iostream>
+#include <mutex>
 
 bool StreamSplitter::push(std::vector<std::complex<float>> samps){
     std::unique_lock l(lock);

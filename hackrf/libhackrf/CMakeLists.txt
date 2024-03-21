@@ -45,9 +45,23 @@ else()
 		 add_definitions(-DHACKRF_BIG_ENDIAN)
 	endif(${BIGENDIAN})
 endif()
-find_package(LIBUSB REQUIRED)
 
-include_directories(${LIBUSB_INCLUDE_DIR} ${THREADS_PTHREADS_INCLUDE_DIR})
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+
+find_path(
+    LIBUSB_INCLUDE_DIRS
+    NAMES libusb.h
+    PATH_SUFFIXES libusb-1.0
+)
+
+find_library(
+    LIBUSB_LIBRARIES
+    NAMES libusb-1.0
+)
+
+include_directories(${THREADS_PTHREADS_INCLUDE_DIR})
 
 add_subdirectory(src)
 
