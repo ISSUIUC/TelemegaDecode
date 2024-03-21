@@ -1,6 +1,6 @@
 // import express from "express"
 const express = require("express")
-import { readFile } from "fs";
+import { appendFile, readFile } from "fs";
 import { spawn } from "child_process";
 import { GFSKMessage, parse_packet  } from "./packet";
 // import path from "path";
@@ -28,7 +28,11 @@ server.get("/getdata", (req,res)=>{
 })
 
 const gfsk = spawn("../build/gfsk", ["436350000", "436550000", "436750000"])
-// const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434550000"])
+// const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"])
+
+const date = new Date();
+const log_path = "log" + date.getDay() + '.' + date.getHours() + '.' + date.getMinutes() + '.' + date.getSeconds();
+console.log(log_path);
 const decode = new TextDecoder();
 
 let stdin_buff = "";
@@ -39,6 +43,7 @@ function ingest_message(msg: string) {
     switch(json.type){
         case "packet":
             const packet = parse_packet(json);
+            appendFile(log_path, JSON.stringify(packet), {}, ()=>{});
             packet_buffer.push(packet); // pushing packet to buffer
             break;
         case "center":

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 // import express from "express"
 var express = require("express");
+var fs_1 = require("fs");
 var child_process_1 = require("child_process");
 var packet_1 = require("./packet");
 // import path from "path";
@@ -23,7 +24,14 @@ server.get("/getdata", function (req, res) {
         res.json([]);
     }
 });
+<<<<<<< HEAD
 var gfsk = (0, child_process_1.spawn)("../build/gfsk", ["436350000", "436550000", "436750000"]);
+=======
+var gfsk = (0, child_process_1.spawn)("..\\cmake-build-release\\gfsk.exe", ["436350000", "436550000", "436750000"]);
+var date = new Date();
+var log_path = "log" + date.getDay() + '.' + date.getHours() + '.' + date.getMinutes() + '.' + date.getSeconds();
+console.log(log_path);
+>>>>>>> main
 // const gfsk = spawn("..\\cmake-build-release\\gfsk.exe", ["434550000"])
 var decode = new TextDecoder();
 var stdin_buff = "";
@@ -32,6 +40,7 @@ function ingest_message(msg) {
     switch (json.type) {
         case "packet":
             var packet = (0, packet_1.parse_packet)(json);
+            (0, fs_1.appendFile)(log_path, JSON.stringify(packet), {}, function () { });
             packet_buffer.push(packet); // pushing packet to buffer
             break;
         case "center":
