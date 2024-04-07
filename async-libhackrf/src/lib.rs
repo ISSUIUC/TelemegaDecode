@@ -9,7 +9,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use futures_lite::future::block_on;
-use nusb::transfer::{Completion, Control, ControlType, Direction, Queue, Recipient, RequestBuffer};
+use nusb::transfer::{Completion, Control, ControlType, Direction, Recipient, RequestBuffer};
 
 #[cfg(feature = "num-complex")]
 pub use num_complex;
