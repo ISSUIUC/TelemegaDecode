@@ -1,9 +1,9 @@
 use std::io::Cursor;
 use byteorder::{LittleEndian, ReadBytesExt};
-use crate::Packet;
 use serde::Serialize;
+use crate::Packet;
 
-#[derive(Serialize)]
+#[derive(Serialize, Copy, Clone, Debug)]
 #[serde(tag = "packet_type")]
 pub enum DecodedPacket {
     SensorPacket(SensorPacket),
@@ -14,114 +14,127 @@ pub enum DecodedPacket {
     UnknownPacket(UnknownPacket)
 }
 
-#[derive(Serialize)]
+impl DecodedPacket {
+    pub fn crc_match(&self) -> bool {
+        match self {
+            DecodedPacket::SensorPacket(packet) => packet.crc,
+            DecodedPacket::ConfigPacket(packet) => packet.crc,
+            DecodedPacket::GPSPacket(packet) => packet.crc,
+            DecodedPacket::SatellitePacket(packet) => packet.crc,
+            DecodedPacket::KalmanVoltagePacket(packet) => packet.crc,
+            DecodedPacket::UnknownPacket(packet) => packet.crc,
+        }
+    }
+}
+
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct UnknownPacket {
-    serial: u16,
-    tick: f64,
-    ptype: u8,
-    crc: bool,
+    pub serial: u16,
+    pub tick: f64,
+    pub ptype: u8,
+    pub crc: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct SensorPacket {
-    serial: u16,
-    tick: f64,
-    ptype: u8,
-    state: u8,
-    accel: i16,
-    pres: i16,
-    temp: f64,
-    v_batt: i16,
-    sense_d: i16,
-    sense_m: i16,
-    acceleration: f64,
-    speed: f64,
-    height: i16,
-    ground_press: i16,
-    ground_accel: i16,
-    accel_plus_g: i16,
-    accel_minus_g: i16,
-    crc: bool,
+    pub serial: u16,
+    pub tick: f64,
+    pub ptype: u8,
+    pub state: u8,
+    pub accel: i16,
+    pub pres: i16,
+    pub temp: f64,
+    pub v_batt: i16,
+    pub sense_d: i16,
+    pub sense_m: i16,
+    pub acceleration: f64,
+    pub speed: f64,
+    pub height: i16,
+    pub ground_press: i16,
+    pub ground_accel: i16,
+    pub accel_plus_g: i16,
+    pub accel_minus_g: i16,
+    pub crc: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct ConfigPacket {
-    serial: u16,
-    tick: f64,
-    ptype: u8,
-    device_type: u8,
-    flight: u16,
-    config_major: u8,
-    config_minor: u8,
-    apogee_delay: u16,
-    main_deploy: u16,
-    flight_log_max: u16,
-    callsign: [u8;8],
-    version: [u8;8],
-    crc: bool,
+    pub serial: u16,
+    pub tick: f64,
+    pub ptype: u8,
+    pub device_type: u8,
+    pub flight: u16,
+    pub config_major: u8,
+    pub config_minor: u8,
+    pub apogee_delay: u16,
+    pub main_deploy: u16,
+    pub flight_log_max: u16,
+    pub callsign: [u8; 8],
+    pub version: [u8; 8],
+    pub crc: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct GPSPacket {
-    serial: u16,
-    tick: f64,
-    ptype: u8,
-    nsats: u8,
-    valid: bool,
-    running: bool,
-    date_valid: bool,
-    course_valid: bool,
-    altitude: i16,
-    latitude: f64,
-    longitude: f64,
-    year: usize,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8,
-    pdop: f64,
-    hdop: f64,
-    vdop: f64,
-    mode: u8,
-    ground_speed: f64,
-    climb_rate: f64,
-    course: f64,
-    crc: bool,
+    pub serial: u16,
+    pub tick: f64,
+    pub ptype: u8,
+    pub nsats: u8,
+    pub valid: bool,
+    pub running: bool,
+    pub date_valid: bool,
+    pub course_valid: bool,
+    pub altitude: i16,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub year: usize,
+    pub month: u8,
+    pub day: u8,
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
+    pub pdop: f64,
+    pub hdop: f64,
+    pub vdop: f64,
+    pub mode: u8,
+    pub ground_speed: f64,
+    pub climb_rate: f64,
+    pub course: f64,
+    pub crc: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct SatellitePacket {
-    serial: u16,
-    tick: f64,
-    ptype: u8,
-    channels: u8,
-    sats: [u8;24],
-    crc: bool,
+    pub serial: u16,
+    pub tick: f64,
+    pub ptype: u8,
+    pub channels: u8,
+    pub sats: [u8; 24],
+    pub crc: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Copy, Clone, Debug)]
 pub struct KalmanVoltagePacket {
-    serial: u16,
-    tick: f64,
-    ptype: u8,
-    state: u8,
-    v_batt: i16,
-    v_pyro: i16,
-    sense: [u8;6],
-    ground_pres: i32,
-    ground_accel: i16,
-    accel_plus_g: i16,
-    accel_minus_g: i16,
-    acceleration: f64,
-    speed: f64,
-    height: i16,
-    crc: bool,
+    pub serial: u16,
+    pub tick: f64,
+    pub ptype: u8,
+    pub state: u8,
+    pub v_batt: i16,
+    pub v_pyro: i16,
+    pub sense: [u8; 6],
+    pub ground_pres: i32,
+    pub ground_accel: i16,
+    pub accel_plus_g: i16,
+    pub accel_minus_g: i16,
+    pub acceleration: f64,
+    pub speed: f64,
+    pub height: i16,
+    pub crc: bool,
 }
 
-pub fn decode(packet: &Packet) -> Result<DecodedPacket, std::io::Error> {
+pub(crate) fn decode(packet: &Packet) -> Result<DecodedPacket, std::io::Error> {
     let ptype = packet.data[4];
-    let mut d = std::io::Cursor::new(packet.data);
+    let mut d = Cursor::new(packet.data);
     let p = match ptype {
         1 => {
             DecodedPacket::SensorPacket(SensorPacket{

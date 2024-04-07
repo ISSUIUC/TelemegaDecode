@@ -6,3 +6,4 @@ target
 *.lock
 vcpkg_installed
 vcpkg
+.vscode

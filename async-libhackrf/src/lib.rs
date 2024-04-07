@@ -8,8 +8,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use nusb::transfer::{Completion, Control, ControlType, Direction, Recipient, RequestBuffer};
-use smol::{block_on, channel};
-use smol::future::FutureExt;
+use futures_lite::future::{block_on, FutureExt};
 
 
 /// HackRF USB vendor ID.
@@ -153,7 +152,7 @@ impl From<u16> for Version {
 }
 
 /// Typestate for RX mode.
-pub struct RxMode(mpsc::Receiver<Completion<Vec<u8>>>, channel::Sender<()>, thread::JoinHandle<()>);
+pub struct RxMode(mpsc::Receiver<Completion<Vec<u8>>>, async_channel::Sender<()>, thread::JoinHandle<()>);
 
 impl Debug for RxMode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -584,7 +583,7 @@ impl<MODE> HackRfOne<MODE> {
             queue.submit(RequestBuffer::new(262144));
         }
         let (tx, rx) = mpsc::channel();
-        let (cancel_tx, cancel_rx) = channel::bounded::<()>(1);
+        let (cancel_tx, cancel_rx) = async_channel::bounded::<()>(1);
         let handle = thread::spawn(move || {
             loop {
                 let res = block_on(async {

@@ -83,7 +83,7 @@ impl HackRFIQSource {
         let (lna, vga) = gain_index(6);
         hack_rf.set_vga_gain(vga as u16)?;
         hack_rf.set_lna_gain(lna as u16)?;
-        let mut hack_rf = hack_rf.into_rx_mode().unwrap();
+        let hack_rf = hack_rf.into_rx_mode().unwrap();
 
         Ok(HackRFIQSource {
             current_gain: 6,

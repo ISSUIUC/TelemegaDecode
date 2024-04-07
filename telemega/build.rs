@@ -1,15 +1,15 @@
 
 fn main() {
-    println!("cargo:rerun-if-changed=src/gfsk/ao.cpp");
-    println!("cargo:rerun-if-changed=src/gfsk/ao.h");
-    println!("cargo:rerun-if-changed=src/gfsk/hackrf_stuff.c");
+    println!("cargo:rerun-if-changed=src/ao.cpp");
+    println!("cargo:rerun-if-changed=src/ao.h");
+    println!("cargo:rerun-if-changed=src/hackrf_stuff.c");
     // println!("cargo:rerun-if-changed=src/box-of-shame/*.*");
     cc::Build::new()
-        .file("src/gfsk/hackrf_stuff.c")
+        .file("src/hackrf_stuff.c")
         .compile("hackrf_stuff");
 
     cc::Build::new()
-        .file("src/gfsk/ao.cpp")
+        .file("src/ao.cpp")
         .compile("ao_fec");
     // cc::Build::new()
     //     .cpp(true)

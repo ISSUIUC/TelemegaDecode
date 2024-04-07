@@ -1,5 +1,5 @@
-use crate::gfsk::ao;
-use crate::gfsk::packet::Packet;
+use crate::ao;
+use crate::packet::Packet;
 
 const SYNC_PATTERN: [u8; 34] = to_bits(b"1010101010101010101101001110010001");
 const MESSAGE_LEN: usize = 72 * 8;
