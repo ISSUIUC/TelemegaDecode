@@ -1,19 +1,12 @@
+workspace = { members = ["async-libhackrf", "telemega"] }
+
 [package]
 name = "tele-decode"
 version = "0.1.0"
 edition = "2021"
 
-[build-dependencies]
-cc = "1.0"
-
 [dependencies]
-clap = { version = "4.5.1", features = ["derive"] }
-num-complex = "0.4"
-hackrfone = "0.2.3"
-itertools = "0.12"
-bus = "2.4.1"
+telemega = { path = "telemega" }
+serde_json = "1.0"
 rocket = "0.5.0"
 webbrowser = "0.8"
-serde = "1.0"
-serde_json = "1.0"
-byteorder = "1.4.3"

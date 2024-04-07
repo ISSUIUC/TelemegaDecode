@@ -1,6 +1,6 @@
 use num_complex::Complex;
-use crate::gfsk::shifter::Shifter;
-use crate::gfsk::transition::Transition;
+use crate::shifter::Shifter;
+use crate::transition::Transition;
 
 const BUFFER_SIZE: usize = 1024 * 32;
 const OFFSET_SIZE: usize = 64;
