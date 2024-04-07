@@ -1,18 +1,16 @@
 //! HackRF One API.
 //!
 //! To get started take a look at [`HackRfOne::new`].
-#![cfg_attr(docsrs, feature(doc_cfg), feature(doc_auto_cfg))]
 #![warn(missing_docs)]
 
 use std::fmt::{Debug, Formatter};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
-use futures_lite::future::block_on;
 use nusb::transfer::{Completion, Control, ControlType, Direction, Recipient, RequestBuffer};
+use smol::{block_on, channel};
+use smol::future::FutureExt;
 
-#[cfg(feature = "num-complex")]
-pub use num_complex;
 
 /// HackRF USB vendor ID.
 const HACKRF_USB_VID: u16 = 0x1D50;
@@ -128,7 +126,7 @@ impl From<nusb::transfer::TransferError> for Error {
 }
 
 impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
@@ -155,7 +153,7 @@ impl From<u16> for Version {
 }
 
 /// Typestate for RX mode.
-pub struct RxMode(mpsc::Receiver<Completion<Vec<u8>>>, thread::JoinHandle<()>);
+pub struct RxMode(mpsc::Receiver<Completion<Vec<u8>>>, channel::Sender<()>, thread::JoinHandle<()>);
 
 impl Debug for RxMode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -586,9 +584,19 @@ impl<MODE> HackRfOne<MODE> {
             queue.submit(RequestBuffer::new(262144));
         }
         let (tx, rx) = mpsc::channel();
+        let (cancel_tx, cancel_rx) = channel::bounded::<()>(1);
         let handle = thread::spawn(move || {
             loop {
-                match tx.send(block_on(queue.next_complete())) {
+                let res = block_on(async {
+                    cancel_rx.recv().await.unwrap();
+                    None
+                }.or(async {
+                    Some(queue.next_complete().await)
+                }));
+
+                let Some(res) = res else { return; };
+
+                match tx.send(res) {
                     Ok(_) => {
                         queue.submit(RequestBuffer::new(262144));
                     },
@@ -600,7 +608,7 @@ impl<MODE> HackRfOne<MODE> {
             dh: self.dh,
             desc: self.desc,
             interface: self.interface,
-            mode: RxMode(rx, handle),
+            mode: RxMode(rx, cancel_tx, handle),
             to: self.to,
         })
     }
@@ -631,7 +639,8 @@ impl HackRfOne<RxMode> {
     /// ```
     pub fn stop_rx(mut self) -> Result<HackRfOne<UnknownMode>, Error> {
         self.set_transceiver_mode(TranscieverMode::Off)?;
-        let RxMode(rx, handle) = self.mode;
+        let RxMode(rx, cancel_tx, handle) = self.mode;
+        cancel_tx.send_blocking(()).unwrap();
         drop(rx);
         handle.join().unwrap();
         Ok(HackRfOne {
