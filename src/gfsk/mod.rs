@@ -46,7 +46,7 @@ pub fn start_decoders(new_packet: fn(f64, Packet)) {
     let mut src: Box<dyn IQSource + Send> = if let Some(file_name) = args.file {
         Box::new(FileIQSource::new(file_name))
     } else {
-        Box::new(HackRFIQSource::new(center))
+        Box::new(HackRFIQSource::new(center).unwrap())
     };
 
     let mut bus: Bus<Arc<Vec<Complex<f32>>>> = Bus::new(10000);

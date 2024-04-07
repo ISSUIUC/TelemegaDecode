@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 use itertools::Itertools;
-use hackrfone::{HackRfOne, RxMode};
+use async_libhackrf::{HackRfOne, RxMode};
 use num_complex::Complex;
 
 
@@ -51,8 +51,6 @@ pub struct HackRFIQSource {
     current_gain: i16,
     max_iq_reading: i8,
     amp_adjust_time: i64,
-    // backlog: VecDeque<Vec<Complex<f32>>>,
-
     hack_rf: HackRfOne<RxMode>
 }
 
@@ -71,7 +69,7 @@ fn gain_index(idx: i16) -> (i16, i16) {
 }
 
 impl HackRFIQSource {
-    pub fn new(center: f64) -> HackRFIQSource {
+    pub fn new(center: f64) -> Result<HackRFIQSource, async_libhackrf::Error> {
         let mut hack_rf = HackRfOne::new().unwrap();
 
         let mut freq_hz = 0;
@@ -79,21 +77,20 @@ impl HackRFIQSource {
         unsafe {
             hackrf_get_sample_rate(SAMPLE_RATE, &mut freq_hz, &mut divider);
         }
-        hack_rf.set_sample_rate(freq_hz, divider).unwrap();
-        hack_rf.set_freq(center as u64).unwrap();
-        hack_rf.set_amp_enable(true).unwrap();
+        hack_rf.set_sample_rate(freq_hz, divider)?;
+        hack_rf.set_freq(center as u64)?;
+        hack_rf.set_amp_enable(true)?;
         let (lna, vga) = gain_index(6);
-        hack_rf.set_vga_gain(vga as u16).unwrap();
-        hack_rf.set_lna_gain(lna as u16).unwrap();
-        let hack_rf = hack_rf.into_rx_mode().unwrap();
+        hack_rf.set_vga_gain(vga as u16)?;
+        hack_rf.set_lna_gain(lna as u16)?;
+        let mut hack_rf = hack_rf.into_rx_mode().unwrap();
 
-        HackRFIQSource {
+        Ok(HackRFIQSource {
             current_gain: 6,
             max_iq_reading: 0,
             amp_adjust_time: SAMPLE_RATE as i64,
-            // backlog: VecDeque::with_capacity(1000),
             hack_rf
-        }
+        })
     }
 }
 
@@ -123,8 +120,11 @@ impl IQSource for HackRFIQSource {
             }
 
             if changed {
+                // eprintln!("Oh no we couldn't change stuff");
                 let (lna, vga) = gain_index(new_gain);
                 unsafe {
+                    // the unsafe is a workaround so that we can move out to the hack_rf
+                    // we need to move out to call stop_rx
                     let mut hack_rf = std::ptr::read(&self.hack_rf).stop_rx().unwrap();
                     hack_rf.set_vga_gain(vga as u16).unwrap();
                     hack_rf.set_lna_gain(lna as u16).unwrap();
