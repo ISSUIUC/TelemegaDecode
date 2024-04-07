@@ -1,9 +1,14 @@
-
+mod shifter;
+mod streaming_gfsk;
+mod transition;
+mod streaming_bit_sync;
+mod streaming_fec_decoder;
 mod ao;
 mod iq_source;
 pub mod packet;
-mod cpp_gfsk;
+// mod cpp_gfsk;
 
+use std::collections::VecDeque;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,9 +16,12 @@ use std::time::Instant;
 use clap::Parser;
 use num_complex::Complex;
 use bus::Bus;
-use crate::gfsk::cpp_gfsk::FullDecoder;
+// use crate::gfsk::cpp_gfsk::FullDecoder;
 use crate::gfsk::iq_source::{FileIQSource, HackRFIQSource, IQSource};
 use crate::gfsk::packet::Packet;
+use crate::gfsk::streaming_bit_sync::StreamingBitSync;
+use crate::gfsk::streaming_fec_decoder::StreamingFecDecoder;
+use crate::gfsk::streaming_gfsk::StreamingGFSKDecoder;
 
 const HZ: f64 = 20_000_000.0;
 const BAUD: f64 = 38400.0;
@@ -32,6 +40,44 @@ impl Arguments {
         self.frequencies.iter()
             .max_by(|a, b| a.total_cmp(b))
             .map_or(0.0, |max| max + 100_000.0)
+    }
+}
+
+struct FullDecoder {
+    fec: StreamingFecDecoder,
+    bit: StreamingBitSync,
+    gfsk: StreamingGFSKDecoder,
+    packets: VecDeque<Packet>,
+    center: f64,
+}
+
+impl FullDecoder {
+    fn new(center: f64, hz: f64, baud: f64) -> FullDecoder {
+        FullDecoder {
+            fec: StreamingFecDecoder::new(),
+            bit: StreamingBitSync::new(hz/baud),
+            gfsk: StreamingGFSKDecoder::new(hz, center),
+            packets: VecDeque::with_capacity(1000),
+            center
+        }
+    }
+
+    fn get_queued(&mut self) -> Option<Packet> {
+        self.packets.pop_front()
+    }
+
+    fn center(&self) -> f64 {
+        self.center
+    }
+
+    fn feed(&mut self, value: &[Complex<f32>]) {
+        self.gfsk.feed(value, |trans| {
+            self.bit.feed(trans, |bit| {
+                self.fec.feed(bit, |packet| {
+                    self.packets.push_back(packet);
+                });
+            });
+        });
     }
 }
 
