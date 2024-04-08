@@ -1,43 +1,52 @@
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use num_complex::Complex;
+use ringbuffer::{AllocRingBuffer, RingBuffer};
+use crate::{ao, Packet};
 use crate::shifter::Shifter;
-use crate::transition::Transition;
 
 const BUFFER_SIZE: usize = 1024 * 32;
 const OFFSET_SIZE: usize = 64;
-
+const SYNC_PATTERN: &[u8] = "1010101010101010101101001110010001".as_bytes();
+const MESSAGE_BITS: usize = 72 * 8;
+const SYNC_BITS: usize = SYNC_PATTERN.len();
+const TOTAL_PACKET_BITS: usize = SYNC_BITS + MESSAGE_BITS;
+const AVERAGING_WIDTH: usize = 128;
 pub struct StreamingGFSKDecoder {
-    // file: File,
-
     buffer: Vec<Complex<f32>>,
-    bits: Vec<bool>,
 
     total_idx: usize,
 
     previous_samples: [Complex<f32>;OFFSET_SIZE],
     staging: [Complex<f32>;OFFSET_SIZE],
 
-    prev_bit: bool,
-
     zi: [[Complex<f32>; 2]; 3],
 
     shifter: Shifter,
+
+    running_sum: f32,
+    avg_buff: [f32;AVERAGING_WIDTH],
+    avg_ring: AllocRingBuffer<f32>,
+    bit_width: f64,
 }
 
 impl StreamingGFSKDecoder {
-    pub fn new(sample_rate: f64, center: f64) -> StreamingGFSKDecoder {
+    pub fn new(sample_rate: f64, center: f64, baud: f64) -> StreamingGFSKDecoder {
         StreamingGFSKDecoder {
             buffer: Vec::with_capacity(BUFFER_SIZE),
-            bits: Vec::with_capacity(BUFFER_SIZE),
             total_idx: 0,
             previous_samples: [Complex::new(0.0, 0.0); OFFSET_SIZE],
             staging: [Complex::new(0.0, 0.0); OFFSET_SIZE],
-            prev_bit: false,
             zi: [[Complex::new(0.0, 0.0); 2]; 3],
             shifter: Shifter::new(-center, sample_rate),
+            avg_buff: [0f32;AVERAGING_WIDTH],
+            bit_width: sample_rate/baud,
+            running_sum: 0f32,
+            avg_ring: AllocRingBuffer::new(TOTAL_PACKET_BITS * (sample_rate/baud).ceil() as usize),
         }
     }
 
-    pub fn feed(&mut self, mut item: &[Complex<f32>], mut for_each: impl FnMut(Transition)) {
+    pub fn feed(&mut self, mut item: &[Complex<f32>], mut for_each: impl FnMut(Packet)) {
         loop {
             let needed = BUFFER_SIZE - self.buffer.len();
             if item.len() > needed {
@@ -57,13 +66,41 @@ impl StreamingGFSKDecoder {
     }
 
     #[allow(unused)]
-    pub fn finish(&mut self, for_each: impl FnMut(Transition)) {
+    pub fn finish(&mut self, for_each: impl FnMut(Packet)) {
         if self.buffer.len() < OFFSET_SIZE {
             self.process_buffer(for_each);
         }
     }
 
-    fn process_buffer(&mut self, mut for_each: impl FnMut(Transition)) {
+    fn check_ring(&mut self) -> Option<Packet> {
+        if self.avg_ring.len() < (TOTAL_PACKET_BITS as f64 * self.bit_width) as usize {
+            return None;
+        }
+        for i in 0..SYNC_BITS {
+            let idx = (self.bit_width * i as f64) as usize;
+            //sync pattern is inversed
+            let bit = self.avg_ring[idx] < 0.0;
+
+            if (SYNC_PATTERN[i] != '0' as u8) != bit {
+                return None;
+            }
+        }
+
+        let mut message = [0u8;MESSAGE_BITS];
+
+        for i in 0..MESSAGE_BITS {
+            let idx = (self.bit_width * (i + SYNC_BITS) as f64) as usize;
+            let bit = self.avg_ring[idx] > 0.0;
+            message[i] = if bit { 0xff } else { 0x00 };
+        }
+
+        let mut data = [0; 34];
+        ao::fec_decode(&message, &mut data);
+        let crc_match = data[data.len() - 1] == ao::FEC_DECODE_CRC_OK;
+        return Some(Packet{crc_match, data});
+    }
+
+    fn process_buffer(&mut self, mut for_each: impl FnMut(Packet)) {
         if self.buffer.len() < OFFSET_SIZE {
             panic!("Error: Buffer too small.");
         }
@@ -72,20 +109,25 @@ impl StreamingGFSKDecoder {
         sosfilt(&LOW_PASS_SOS_33K, &mut self.buffer, &mut self.zi);
         self.staging.copy_from_slice(&self.buffer[self.buffer.len() - OFFSET_SIZE..]);
         polar_discriminate(&mut self.buffer, &self.previous_samples);
-        std::mem::swap(&mut self.previous_samples, &mut self.staging);
 
-        self.bits.clear();
-        self.bits.extend(self.buffer.iter().map(|x| x.im < 0.0));
-
-        if self.prev_bit != self.bits[0] {
-            for_each(Transition { idx: self.total_idx, new_state: self.bits[0] });
-        }
-        for i in 0..self.buffer.len()-1 {
-            if self.bits[i] != self.bits[i+1] {
-                for_each(Transition { idx: i + 1 + self.total_idx, new_state: self.bits[i+1] });
+        //periodically reset running sum to avoid floating point error buildup
+        self.running_sum = self.avg_buff.iter().sum();
+        for i in 0..self.buffer.len() {
+            let s = self.buffer[i];
+            let im = s.im;
+            let idx = (self.total_idx + i) % self.avg_buff.len();
+            self.running_sum = self.running_sum + im - self.avg_buff[idx];
+            self.avg_buff[idx] = im;
+            self.avg_ring.push(self.running_sum / AVERAGING_WIDTH as f32);
+            if let Some(packet) = self.check_ring() {
+                if packet.crc_match {
+                    for_each(packet);
+                    self.avg_ring.clear();
+                }
             }
         }
-        self.prev_bit = self.bits[self.buffer.len()-1];
+        std::mem::swap(&mut self.previous_samples, &mut self.staging);
+
         self.total_idx += self.buffer.len();
         self.buffer.clear();
     }
