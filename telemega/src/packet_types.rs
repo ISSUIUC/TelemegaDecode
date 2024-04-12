@@ -3,7 +3,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use serde::Serialize;
 use crate::Packet;
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(tag = "packet_type")]
 pub enum DecodedPacket {
     SensorPacket(SensorPacket),
@@ -27,7 +27,7 @@ impl DecodedPacket {
     }
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct UnknownPacket {
     pub serial: u16,
     pub tick: f64,
@@ -35,7 +35,7 @@ pub struct UnknownPacket {
     pub crc: bool,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct SensorPacket {
     pub serial: u16,
     pub tick: f64,
@@ -57,7 +57,7 @@ pub struct SensorPacket {
     pub crc: bool,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ConfigPacket {
     pub serial: u16,
     pub tick: f64,
@@ -69,12 +69,12 @@ pub struct ConfigPacket {
     pub apogee_delay: u16,
     pub main_deploy: u16,
     pub flight_log_max: u16,
-    pub callsign: [u8; 8],
-    pub version: [u8; 8],
+    pub callsign: String,
+    pub version: String,
     pub crc: bool,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct GPSPacket {
     pub serial: u16,
     pub tick: f64,
@@ -103,7 +103,7 @@ pub struct GPSPacket {
     pub crc: bool,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct SatellitePacket {
     pub serial: u16,
     pub tick: f64,
@@ -113,7 +113,7 @@ pub struct SatellitePacket {
     pub crc: bool,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct KalmanVoltagePacket {
     pub serial: u16,
     pub tick: f64,
@@ -159,10 +159,8 @@ pub(crate) fn decode(packet: &Packet) -> Result<DecodedPacket, std::io::Error> {
             })
         },
         4 => {
-            let mut callsign = [0u8;8];
-            callsign.copy_from_slice(&packet.data[16..24]);
-            let mut version = [0u8;8];
-            version.copy_from_slice(&packet.data[24..32]);
+            let callsign = std::str::from_utf8(&packet.data[16..24]).unwrap_or("ERR").to_string();
+            let version = std::str::from_utf8(&packet.data[24..32]).unwrap_or("ERR").to_string();
 
             DecodedPacket::ConfigPacket(ConfigPacket{
                 serial: d.read_u16::<LittleEndian>()?,
