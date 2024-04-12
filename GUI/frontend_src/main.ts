@@ -368,7 +368,7 @@ setInterval(async ()=>{
     if(json instanceof Array){
         for(const elem of json){
             let v = view4;
-            if(elem.serial == 10978){
+            if(elem.serial == 11216){
                 v = view;
             }
             if(elem.serial == 11047){
