@@ -14,6 +14,6 @@ Clone this repository
 6. `node build.mjs`
 
 Frequencies:
-    Sustainer AL0: 436750000 Hz
-    Sustainer AL1: 436550000 Hz
-    Booster AL3:   436350000 Hz
+* Sustainer AL0: 436750000 Hz
+* Sustainer AL1: 436550000 Hz
+* Booster AL3:   436350000 Hz
