@@ -6,7 +6,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-telemega = { path = "telemega" }
-serde_json = "1.0"
-rocket = "0.5.0"
-webbrowser = "0.8"
+#telemega = { path = "telemega" }
+lora = { path = "lora" }
+#serde_json = "1.0"
+#rocket = "0.5.0"
+#webbrowser = "0.8"
