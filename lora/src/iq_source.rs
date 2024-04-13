@@ -11,7 +11,6 @@ pub trait IQSource {
 }
 
 
-const SAMPLE_RATE: f64 = 20_000_000.0;
 const MAX_GAIN_SETTING: i16 = 36;
 const MIN_GAIN_SETTING: i16 = 0;
 
@@ -51,7 +50,8 @@ pub struct HackRFIQSource {
     current_gain: i16,
     max_iq_reading: i8,
     amp_adjust_time: i64,
-    hack_rf: HackRfOne<RxMode>
+    hack_rf: HackRfOne<RxMode>,
+    sample_rate: f64,
 }
 
 extern "C" { fn hackrf_get_sample_rate(freq: f64, freq_hz: *mut u32, divider: *mut u32); }
@@ -69,13 +69,13 @@ fn gain_index(idx: i16) -> (i16, i16) {
 }
 
 impl HackRFIQSource {
-    pub fn new(center: f64) -> Result<HackRFIQSource, async_libhackrf::Error> {
+    pub fn new(center: f64, sample_rate: f64) -> Result<HackRFIQSource, async_libhackrf::Error> {
         let mut hack_rf = HackRfOne::new().unwrap();
 
         let mut freq_hz = 0;
         let mut divider = 0;
         unsafe {
-            hackrf_get_sample_rate(SAMPLE_RATE, &mut freq_hz, &mut divider);
+            hackrf_get_sample_rate(sample_rate, &mut freq_hz, &mut divider);
         }
         hack_rf.set_sample_rate(freq_hz, divider)?;
         hack_rf.set_freq(center as u64)?;
@@ -88,7 +88,8 @@ impl HackRFIQSource {
         Ok(HackRFIQSource {
             current_gain: 6,
             max_iq_reading: 0,
-            amp_adjust_time: SAMPLE_RATE as i64,
+            amp_adjust_time: sample_rate as i64,
+            sample_rate,
             hack_rf
         })
     }
@@ -134,7 +135,7 @@ impl IQSource for HackRFIQSource {
                 self.current_gain = new_gain;
             }
             self.max_iq_reading = 0;
-            self.amp_adjust_time = SAMPLE_RATE as i64;
+            self.amp_adjust_time = self.sample_rate as i64;
         }
 
         out

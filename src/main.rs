@@ -46,7 +46,7 @@
 //     server
 // }
 
-use lora::hi;
+use lora::{decode, demod};
 fn main() {
-    hi();
+    decode();
 }

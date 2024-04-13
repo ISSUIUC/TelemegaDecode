@@ -587,7 +587,7 @@ impl<MODE> HackRfOne<MODE> {
         let handle = thread::spawn(move || {
             loop {
                 let res = block_on(async {
-                    cancel_rx.recv().await.unwrap();
+                    cancel_rx.recv().await;
                     None
                 }.or(async {
                     Some(queue.next_complete().await)

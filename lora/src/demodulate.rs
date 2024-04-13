@@ -134,7 +134,7 @@ impl LoraSyncStateMachine {
             }
             SyncingMode::Synced => {
                 self.packet.push(sym);
-                if self.packet.len() > 23 {
+                if self.packet.len() > 39 {
                     println!("{:?}", self.packet);
                     self.packet.clear();
                     SyncingMode::LookSync
