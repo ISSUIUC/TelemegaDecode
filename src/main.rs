@@ -48,5 +48,15 @@
 
 use lora::{decode, demod};
 fn main() {
-    decode();
+    demod(|x|{
+        let decoded = decode(&x);
+
+        for c in decoded {
+            if c == 0 {
+                break;
+            }
+            print!("{}", c as char);
+        }
+        println!();
+    });
 }

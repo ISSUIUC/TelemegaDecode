@@ -56,7 +56,7 @@ struct LoraSyncStateMachine {
     sync_state: SyncingMode,
     up_history: Vec<usize>,
     down_history: Vec<usize>,
-    packet: Vec<usize>,
+    packet: Vec<u8>,
     sf2: usize,
 }
 
@@ -83,7 +83,7 @@ impl LoraSyncStateMachine {
         }
     }
 
-    fn next(&mut self, sym: usize, adj: f32) -> f64 {
+    fn next(&mut self, sym: usize, adj: f32, mut foreach: impl FnMut(Vec<u8>)) -> f64 {
         match self.sync_state {
             SyncingMode::LookSync => self.up_history.push(sym),
             SyncingMode::Look8 => self.up_history.push(sym),
@@ -122,7 +122,7 @@ impl LoraSyncStateMachine {
                 SyncingMode::LookDown1
             }
             SyncingMode::LookDown1 => {
-                if self.down_history[self.down_history.len()-1] == self.down_history[self.down_history.len()-2] {
+                if mod_distance(self.down_history[self.down_history.len()-1], self.down_history[self.down_history.len()-2],self.sf2) == 0 {
                     shift_amount = 0.75;
                     SyncingMode::LookDownQuarter
                 } else {
@@ -133,9 +133,9 @@ impl LoraSyncStateMachine {
                 SyncingMode::Synced
             }
             SyncingMode::Synced => {
-                self.packet.push(sym);
-                if self.packet.len() > 39 {
-                    println!("{:?}", self.packet);
+                self.packet.push(sym as u8);
+                if self.packet.len() > 87 {
+                    foreach(self.packet.clone());
                     self.packet.clear();
                     SyncingMode::LookSync
                 } else {
@@ -196,7 +196,7 @@ impl LoraDemodulator {
         }
     }
 
-    fn process_buffer(&mut self, mut for_each: impl FnMut(Vec<usize>)) {
+    fn process_buffer(&mut self, mut for_each: impl FnMut(Vec<u8>)) {
         assert_eq!(self.buffer.len(), BUFFER_SIZE);
 
         self.shifter.shift(&mut self.buffer, self.total_items);
@@ -210,7 +210,7 @@ impl LoraDemodulator {
             self.chirp_buffer.extend_from_slice(&unconsumed_view[..take]);
             unconsumed_view = &unconsumed_view[take..];
             if self.chirp_buffer.len() == self.chirp_len {
-                self.process_chirp();
+                self.process_chirp(&mut for_each);
             }
         }
 
@@ -247,7 +247,7 @@ impl LoraDemodulator {
         return (max_idx, adjust);
     }
 
-    fn process_chirp(&mut self) {
+    fn process_chirp(&mut self, mut for_each: impl FnMut(Vec<u8>)) {
         assert_eq!(self.chirp_buffer.len(), self.chirp_len);
 
         let dechirp = match self.state.which_chirp() {
@@ -257,14 +257,14 @@ impl LoraDemodulator {
 
         let (sym, adj) = self.get_symbol(&self.chirp_buffer, dechirp, self.sf);
 
-        let shift_amount = self.state.next(sym, adj);
+        let shift_amount = self.state.next(sym, adj, &mut for_each);
         //keep the last shift_amount of the chirp for the next chirp to process
         let shift_idx = ((1.0 - shift_amount) * self.chirp_len as f64) as usize;
         self.chirp_buffer.copy_within(shift_idx..,0);
         self.chirp_buffer.resize(self.chirp_len - shift_idx, Complex32::new(0.0,0.0));
     }
 
-    pub fn feed(&mut self, mut items: &[Complex<f32>], mut for_each: impl FnMut(Vec<usize>)) {
+    pub fn feed(&mut self, mut items: &[Complex<f32>], mut for_each: impl FnMut(Vec<u8>)) {
         loop {
             let needed = BUFFER_SIZE - self.buffer.len();
             if items.len() > needed {
