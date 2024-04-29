@@ -1,0 +1,13 @@
+[package]
+name = "light"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+cc = "1.0"
+
+[dependencies]
+async-libhackrf = { path = "../async-libhackrf" }
+num-complex = "0.4"
+itertools = "0.12"
+rustfft = "6.2.0"
