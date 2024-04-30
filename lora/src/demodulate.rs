@@ -2,6 +2,7 @@ use std::sync::Arc;
 use num_complex::{Complex, Complex32};
 use rustfft::{Fft, FftPlanner};
 use crate::{downchirp, Shifter, sosfilt, upchirp};
+use crate::symbol::{Packet, Symbol};
 
 const BUFFER_SIZE: usize = 1024 * 32;
 
@@ -33,12 +34,12 @@ fn mod_distance(a: usize, b: usize, mod_base: usize) -> usize {
     return usize::min(d, mod_base - d);
 }
 
-fn all_within(symbols: &[usize], range: usize, mod_base: usize) -> bool {
+fn all_within(symbols: &[Symbol], range: usize, mod_base: usize) -> bool {
     if symbols.is_empty() {
         return true;
     }
     for i in 0..mod_base {
-        if symbols.iter().map(|x| mod_distance(*x,i,mod_base)).max().unwrap() <= range {
+        if symbols.iter().map(|x| mod_distance(x.value,i,mod_base)).max().unwrap() <= range {
             return true;
         }
     }
@@ -54,9 +55,9 @@ const LOW_PASS_SOS_200K: [[f32;6];3] = [
 
 struct LoraSyncStateMachine {
     sync_state: SyncingMode,
-    up_history: Vec<usize>,
-    down_history: Vec<usize>,
-    packet: Vec<u8>,
+    up_history: Vec<Symbol>,
+    down_history: Vec<Symbol>,
+    packet: Vec<Symbol>,
     sf2: usize,
 }
 
@@ -83,7 +84,7 @@ impl LoraSyncStateMachine {
         }
     }
 
-    fn next(&mut self, sym: usize, adj: f32, mut foreach: impl FnMut(Vec<u8>)) -> f64 {
+    fn next(&mut self, sym: Symbol, mut foreach: impl FnMut(Packet)) -> f64 {
         match self.sync_state {
             SyncingMode::LookSync => self.up_history.push(sym),
             SyncingMode::Look8 => self.up_history.push(sym),
@@ -98,34 +99,35 @@ impl LoraSyncStateMachine {
 
         self.sync_state = match self.sync_state {
             SyncingMode::LookSync => {
-                if self.up_history.len() > 7 && all_within(&self.up_history[(self.up_history.len()-7)..self.up_history.len()], 0, self.sf2) {
-                    shift_amount = (sym as f64 + adj as f64)/(self.sf2 as f64);
+                if self.up_history.len() > 7 && all_within(&self.up_history[(self.up_history.len()-7)..self.up_history.len()], 2, self.sf2) {
+                    shift_amount = (sym.value as f64 + sym.adj as f64)/(self.sf2 as f64);
                     SyncingMode::Look8
                 } else {
                     SyncingMode::LookSync
                 }
             }
             SyncingMode::Look8 => {
-                match sym {
+                match sym.value {
                     0 => SyncingMode::Look8,
                     8 => SyncingMode::Look16,
-                    _ => SyncingMode::LookSync
+                    _ => {SyncingMode::LookSync},
                 }
             }
             SyncingMode::Look16 => {
-                match sym {
+                match sym.value {
                     16  => SyncingMode::LookDown0,
-                    _ => SyncingMode::LookSync,
+                    _ => {eprintln!("fail16"); SyncingMode::LookSync},
                 }
             }
             SyncingMode::LookDown0 => {
                 SyncingMode::LookDown1
             }
             SyncingMode::LookDown1 => {
-                if mod_distance(self.down_history[self.down_history.len()-1], self.down_history[self.down_history.len()-2],self.sf2) == 0 {
+                if mod_distance(self.down_history[self.down_history.len()-1].value, self.down_history[self.down_history.len()-2].value, self.sf2) <= 1 {
                     shift_amount = 0.75;
                     SyncingMode::LookDownQuarter
                 } else {
+                    eprintln!("faildown");
                     SyncingMode::LookSync
                 }
             }
@@ -133,9 +135,9 @@ impl LoraSyncStateMachine {
                 SyncingMode::Synced
             }
             SyncingMode::Synced => {
-                self.packet.push(sym as u8);
-                if self.packet.len() > 87 {
-                    foreach(self.packet.clone());
+                self.packet.push(sym);
+                if self.packet.len() > 73 {
+                    foreach(Packet::new(self.packet.clone()));
                     self.packet.clear();
                     SyncingMode::LookSync
                 } else {
@@ -196,7 +198,7 @@ impl LoraDemodulator {
         }
     }
 
-    fn process_buffer(&mut self, mut for_each: impl FnMut(Vec<u8>)) {
+    fn process_buffer(&mut self, mut for_each: impl FnMut(Packet)) {
         assert_eq!(self.buffer.len(), BUFFER_SIZE);
 
         self.shifter.shift(&mut self.buffer, self.total_items);
@@ -219,7 +221,7 @@ impl LoraDemodulator {
     }
 
 
-    fn get_symbol(&self, s: &[Complex<f32>], dechirp: &[Complex<f32>], sf: u32) -> (usize, f32) {
+    fn get_symbol(&self, s: &[Complex<f32>], dechirp: &[Complex<f32>], sf: u32) -> Symbol {
         let mut d = s.to_vec();
         product(&mut d, dechirp);
 
@@ -236,6 +238,11 @@ impl LoraDemodulator {
             }
         }
 
+        let total_energy: f32 = freqs.iter().sum();
+        let signal_energy = freqs[max_idx];
+        let noise_energy = total_energy - signal_energy;
+        let snr = signal_energy / noise_energy;
+
         let left_idx = (max_idx + sf2 - 1) % sf2;
         let right_idx = (max_idx + sf2 + 1) % sf2;
 
@@ -244,10 +251,10 @@ impl LoraDemodulator {
 
         let adjust = ldiff / (ldiff + rdiff) - 0.5;
 
-        return (max_idx, adjust);
+        return Symbol::new(max_idx, snr, adjust);
     }
 
-    fn process_chirp(&mut self, mut for_each: impl FnMut(Vec<u8>)) {
+    fn process_chirp(&mut self, mut for_each: impl FnMut(Packet)) {
         assert_eq!(self.chirp_buffer.len(), self.chirp_len);
 
         let dechirp = match self.state.which_chirp() {
@@ -255,16 +262,16 @@ impl LoraDemodulator {
             ChirpKind::Down => &self.up_chirp,
         };
 
-        let (sym, adj) = self.get_symbol(&self.chirp_buffer, dechirp, self.sf);
+        let sym = self.get_symbol(&self.chirp_buffer, dechirp, self.sf);
 
-        let shift_amount = self.state.next(sym, adj, &mut for_each);
+        let shift_amount = self.state.next(sym, &mut for_each);
         //keep the last shift_amount of the chirp for the next chirp to process
         let shift_idx = ((1.0 - shift_amount) * self.chirp_len as f64) as usize;
         self.chirp_buffer.copy_within(shift_idx..,0);
         self.chirp_buffer.resize(self.chirp_len - shift_idx, Complex32::new(0.0,0.0));
     }
 
-    pub fn feed(&mut self, mut items: &[Complex<f32>], mut for_each: impl FnMut(Vec<u8>)) {
+    pub fn feed(&mut self, mut items: &[Complex<f32>], mut for_each: impl FnMut(Packet)) {
         loop {
             let needed = BUFFER_SIZE - self.buffer.len();
             if items.len() > needed {

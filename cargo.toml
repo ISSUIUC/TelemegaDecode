@@ -1,4 +1,4 @@
-workspace = { members = ["async-libhackrf", "telemega"] }
+workspace = { members = ["async-libhackrf", "light"] }
 
 [package]
 name = "tele-decode"
@@ -7,7 +7,8 @@ edition = "2021"
 
 [dependencies]
 #telemega = { path = "telemega" }
-lora = { path = "lora" }
+#lora = { path = "lora" }
+light = { path = "light" }
 #serde_json = "1.0"
 #rocket = "0.5.0"
 #webbrowser = "0.8"

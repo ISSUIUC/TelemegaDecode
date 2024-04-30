@@ -12,3 +12,4 @@ async-libhackrf = { path = "../async-libhackrf" }
 num-complex = "0.4"
 itertools = "0.12"
 rustfft = "6.2.0"
+crc = "3.2.1"

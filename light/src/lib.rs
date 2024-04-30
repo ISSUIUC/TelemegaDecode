@@ -136,7 +136,7 @@ pub fn hi() {
     let mut chunk = vec![];
     let mut inflight = vec![];
 
-    let mut f = File::create("nums5.txt").unwrap();
+    let mut f = File::create("nums6.txt").unwrap();
     loop {
         let mut buff = src.read();
         chunk.append(&mut buff);
