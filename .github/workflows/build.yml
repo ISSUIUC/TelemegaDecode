@@ -1,0 +1,16 @@
+name: TelemegaDecodeBuild
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+        - name: Set compiler
+          run: |
+            cargo build -r
+
+        - uses: actions/upload-artifact@v4
+          continue-on-error: true
+          with:
+             name: build_${{ runner.os }}
+             path: target/release
