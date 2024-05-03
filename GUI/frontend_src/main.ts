@@ -371,7 +371,7 @@ setInterval(async ()=>{
             if(elem.serial == 11216){
                 v = view;
             }
-            if(elem.serial == 11047){
+            if(elem.serial == 11124){
                 v = view2;
             }
             
