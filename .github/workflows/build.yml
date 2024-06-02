@@ -1,0 +1,24 @@
+name: TelemegaDecodeBuild
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+        matrix:
+          os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+        - uses: actions/checkout@v2
+          with:
+            fetch-depth: 1
+            submodules: recursive
+  
+        - name: Set compiler
+          run: |
+            cargo build -r
+
+        - uses: actions/upload-artifact@v4
+          continue-on-error: true
+          with:
+             name: build_${{ runner.os }}
+             path: target/release
